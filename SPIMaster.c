@@ -155,7 +155,7 @@ int32_t SPIMaster_DMAEnable(SPIMaster *handle, bool enable)
         return ERROR_NONE;
     }
 
-    if (!MT3620_DMA_FIELD_READ(MT3620_SPI_DMA_TX(handle->id), start, str)) {
+    if (MT3620_DMA_FIELD_READ(MT3620_SPI_DMA_TX(handle->id), start, str)) {
         return ERROR_BUSY;
     }
 
