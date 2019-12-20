@@ -53,7 +53,7 @@ static __attribute__((section(".sysram"))) mt3620_spi_dma_cfg_t SPIMaster_DmaCon
 
 int32_t SPIMaster_Select(SPIMaster *handle, unsigned csLine)
 {
-    if (!handle->id) {
+    if (!handle) {
         return ERROR_PARAMETER;
     }
     if (!handle->open) {
