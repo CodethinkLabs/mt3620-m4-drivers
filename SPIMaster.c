@@ -76,7 +76,7 @@ int32_t SPIMaster_Select(SPIMaster *handle, unsigned csLine)
 
 int32_t SPIMaster_SelectEnable(SPIMaster *handle, bool enable)
 {
-    if (!handle->id) {
+    if (!handle) {
         return ERROR_PARAMETER;
     }
     if (!handle->open) {
