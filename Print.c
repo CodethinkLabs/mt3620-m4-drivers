@@ -278,12 +278,14 @@ int32_t UART_Printf(UART *handle, const char *format, ...)
                 return error;
             }
             format = end + 1;
-            /* Write previously globbed tempBuffer */
-            tempBuffer[tempIndex] = '\0';
-            tempIndex             = 0;
-            if ((error = UART_Print(
-                handle, (const char*)tempBuffer)) != ERROR_NONE) {
-                return error;
+            if (tempIndex > 0) {
+                /* Write previously globbed tempBuffer */
+                tempBuffer[tempIndex] = '\0';
+                tempIndex             = 0;
+                if ((error = UART_Print(
+                    handle, (const char*)tempBuffer)) != ERROR_NONE) {
+                    return error;
+                }
             }
             /* Write formatted arg */
             switch (spec.type) {
