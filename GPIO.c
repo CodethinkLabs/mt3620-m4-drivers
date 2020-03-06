@@ -41,16 +41,19 @@ static int32_t ConfigurePin(uint32_t pin, bool asInput)
 
     if (index == MT3620_GPIO_ADC_BLOCK_INDEX) {
         if (asInput == true) {
-            mt3620_adc->gpio_adc_ies_set = pinMask;
+            mt3620_adc->gpio_adc_ies_set  = pinMask;
+            mt3620_adc->gpio_adc_oe_reset = pinMask;
         } else {
-            mt3620_adc->gpio_adc_oe_set = pinMask;
+            mt3620_adc->gpio_adc_oe_set    = pinMask;
+            mt3620_adc->gpio_adc_ies_reset = pinMask;
         }
-
     } else {
         if (asInput == true) {
-            mt3620_gpio[index]->gpio_pwm_grp_ies_set = pinMask;
+            mt3620_gpio[index]->gpio_pwm_grp_ies_set  = pinMask;
+            mt3620_gpio[index]->gpio_pwm_grp_oe_reset = pinMask;
         } else {
-            mt3620_gpio[index]->gpio_pwm_grp_oe_set = pinMask;
+            mt3620_gpio[index]->gpio_pwm_grp_oe_set    = pinMask;
+            mt3620_gpio[index]->gpio_pwm_grp_ies_reset = pinMask;
         }
     }
 
