@@ -385,7 +385,7 @@ int32_t UART_Read(UART *handle, void *data, uintptr_t size)
             data = (void *)((uintptr_t)data + chunk);
             size -= chunk;
 
-            if (size > 0) {
+            if ((size > 0) && handle->rxCallback) {
                 __asm__("wfi");
             }
         }
