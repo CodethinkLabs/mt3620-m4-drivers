@@ -12,8 +12,8 @@
 
 typedef struct AdcContext AdcContext;
 
-/// <summary>Returned when the user supplied FIFO is smaller than the number of channels.</summary>
-#define ERROR_ADC_FIFO_TOO_SMALL               (ERROR_SPECIFIC - 1)
+/// <summary>Returned when the user supplied FIFO is invalid for the number of channels.</summary>
+#define ERROR_ADC_FIFO_INVALID                 (ERROR_SPECIFIC - 1)
 
 /// <summary>Returned when a frequency for the ADC period is unsupported.</summary>
 #define ERROR_ADC_FREQUENCY_UNSUPPORTED        (ERROR_SPECIFIC - 2)

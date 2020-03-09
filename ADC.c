@@ -45,6 +45,16 @@ static inline void ADC_DMADisable(){
     MT3620_DMA_FIELD_WRITE(MT3620_ADC_DMA_CHANNEL, start, str, 0);
 }
 
+static ADC_CountChannels(uint16_t channelMask)
+{
+    uint8_t numChannels;
+    for (numChannels = 0; channelMask; numChannels++) {
+        channelMask &= channelMask - 1;
+    }
+
+    return numChannels;
+}
+
 AdcContext *ADC_Open(Platform_Unit unit)
 {
     uint32_t id = ADC_UnitToID (unit);
@@ -166,17 +176,13 @@ static int32_t ADC_Read(
     GPT_Close(timer);
 
     /* Set trigger level based on number of channels selected */
-    uint16_t channelTemp = channel;
-    uint8_t numChannels;
-    for (numChannels = 0; channelTemp; numChannels++) {
-        channelTemp &= channelTemp - 1;
-    }
+    uint8_t numChannels = ADC_CountChannels(channel);
 
     handle->channelsCount = numChannels;
 
     //Check fifo size is at least as great as the number of channels
     if (handle->fifoSize < numChannels) {
-        return ERROR_ADC_FIFO_TOO_SMALL;
+        return ERROR_ADC_FIFO_INVALID;
     }
 
     //Set DMA registers
@@ -255,6 +261,10 @@ int32_t ADC_ReadSync(
     ADC_Data *data, uint32_t *rawData,
     uint16_t channel, uint16_t referenceVoltage)
 {
+    if (ADC_CountChannels(channel) != dmaFifoSize) {
+        return ERROR_ADC_FIFO_INVALID;
+    }
+
     ADC_ReadSync_Ready = false;
     int32_t status = ADC_Read(handle, &ADC_ReadSync_Callback, dmaFifoSize, data, rawData,
             channel, false, 0, referenceVoltage);
