@@ -340,38 +340,6 @@ typedef struct {
     volatile uint32_t       global_int_en;
     volatile uint32_t       global_int_sts_clr;
     volatile uint32_t       global_int_sts;
-    volatile const uint32_t res_44_20[45];
-    volatile uint32_t       gpio_din;
-    volatile const uint32_t res_48_46[3];
-    volatile uint32_t       gpio_dout;
-    volatile uint32_t       gpio_dout_set;
-    volatile uint32_t       gpio_dout_reset;
-    volatile const uint32_t res_52;
-    volatile uint32_t       gpio_oe;
-    volatile uint32_t       gpio_oe_set;
-    volatile uint32_t       gpio_oe_reset;
-    volatile const uint32_t res_56;
-    volatile uint32_t       gpio_pu;
-    volatile uint32_t       gpio_pu_set;
-    volatile uint32_t       gpio_pu_reset;
-    volatile const uint32_t res_60;
-    volatile uint32_t       gpio_pd;
-    volatile uint32_t       gpio_pd_set;
-    volatile uint32_t       gpio_pd_reset;
-    volatile const uint32_t res_64;
-    volatile uint32_t       gpio_sr;
-    volatile uint32_t       gpio_sr_set;
-    volatile uint32_t       gpio_sr_reset;
-    volatile const uint32_t res_68;
-    volatile uint32_t       gpio_ies;
-    volatile uint32_t       gpio_ies_set;
-    volatile uint32_t       gpio_ies_reset;
-    volatile const uint32_t res_72;
-    volatile uint32_t       paddrv;
-    volatile const uint32_t res_76_74[3];
-    volatile uint32_t       rdsel;
-    volatile const uint32_t res_80_78[3];
-    volatile uint32_t       tdsel;
 } mt3620_i2s_t;
 
 #define MT3620_I2S_INTERRUPT(x) (68 + (x))

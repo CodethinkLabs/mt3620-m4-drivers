@@ -155,39 +155,10 @@ typedef union __attribute__((__packed__)) {
 
 
 typedef struct {
+    // NB: GPIO registers are mostly common for ISU, ADC, GPIO and I2S
+    //     so, users should use the GPIO API.
     volatile uint32_t       adc_global_ctrl;
-    volatile const uint32_t gpio_adc_din;
-    volatile const uint32_t res_2_3[2];
-    volatile uint32_t       gpio_adc_dout;
-    volatile uint32_t       gpio_adc_dout_set;
-    volatile uint32_t       gpio_adc_dout_reset;
-    volatile uint32_t       res_7;
-    volatile uint32_t       gpio_adc_oe;
-    volatile uint32_t       gpio_adc_oe_set;
-    volatile uint32_t       gpio_adc_oe_reset;
-    volatile uint32_t       res_11;
-    volatile uint32_t       gpio_adc_pu;
-    volatile uint32_t       gpio_adc_pu_set;
-    volatile uint32_t       gpio_adc_pu_reset;
-    volatile uint32_t       res_15;
-    volatile uint32_t       gpio_adc_pd;
-    volatile uint32_t       gpio_adc_pd_set;
-    volatile uint32_t       gpio_adc_pd_reset;
-    volatile uint32_t       res_19;
-    volatile uint32_t       gpio_adc_sr;
-    volatile uint32_t       gpio_adc_set_set;
-    volatile uint32_t       gpio_adc_set_reset;
-    volatile uint32_t       res_23;
-    volatile uint32_t       gpio_adc_ies;
-    volatile uint32_t       gpio_adc_ies_set;
-    volatile uint32_t       gpio_adc_ies_reset;
-    volatile uint32_t       res_27;
-    volatile uint32_t       gpio_adc_paddrv;
-    volatile uint32_t       res_29_31[3];
-    volatile uint32_t       gpio_adc_rdsel;
-    volatile uint32_t       res_33_35[3];
-    volatile uint32_t       gpio_adc_tdsel;
-    volatile uint32_t       res_37_63[27];
+    volatile const uint32_t res_1_63[63];
     volatile uint32_t       adc_ctl0;
     volatile uint32_t       reg_period;
     volatile uint32_t       adc_ctl2;
@@ -199,7 +170,7 @@ typedef struct {
     volatile uint32_t       adc_fifo_ier;
     volatile uint32_t       adc_iir;
     volatile uint32_t       adc_fifo_fakelcr;
-    volatile uint32_t       res_131;
+    volatile const uint32_t res_131;
     volatile const uint32_t adc_fifo_lsr;
     volatile const uint32_t res_133_144[12];
     volatile uint32_t       adc_fifo_sleep_en;
