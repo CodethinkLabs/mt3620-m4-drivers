@@ -308,9 +308,10 @@ typedef mt3620_pwm_param_s_t mt3620_pwm3_param_s0_t;
 typedef mt3620_pwm_param_s_t mt3620_pwm3_param_s1_t;
 
 typedef struct {
-    volatile uint32_t       gpio_pwm_grp_global_ctrl;
+    volatile uint32_t       gpio_pwm_grp_global_ctrl__din_i2s;
     volatile const uint32_t gpio_pwm_grp_din;
-    volatile const uint32_t res_2_3[2];
+    volatile const uint32_t res_2;
+    volatile const uint32_t gpio_pwm_grp_din_isu;
     volatile uint32_t       gpio_pwm_grp_dout;
     volatile uint32_t       gpio_pwm_grp_dout_set;
     volatile uint32_t       gpio_pwm_grp_dout_reset;

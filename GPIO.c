@@ -82,7 +82,19 @@ int32_t GPIO_Read(uint32_t pin, bool *state)
 
     uint32_t pinMask = getPinMask(pin, block);
 
-    *state = pinMask & mt3620_gpio[block]->gpio_pwm_grp_din;
+    /* The GPIO register map for ISU is undocumented, but it looks like the DIN
+     * offset is at 0xc, as opposed to 0x4 (for GPIO). Similarly, the I2S GPIO
+     * DIN offset is also different, but at 0x0.*/
+
+    if (block < MT3620_GPIO_BLOCK_ISU_0) {
+        *state = pinMask & mt3620_gpio[block]->gpio_pwm_grp_din;
+    }
+    else if (block < MT3620_GPIO_BLOCK_I2S_0) {
+        *state = pinMask & mt3620_gpio[block]->gpio_pwm_grp_din_isu;
+    }
+    else {
+        *state = pinMask & mt3620_gpio[block]->gpio_pwm_grp_global_ctrl__din_i2s;
+    }
 
     return ERROR_NONE;
 }
