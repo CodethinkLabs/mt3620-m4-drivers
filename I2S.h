@@ -46,11 +46,12 @@ void I2S_Close(I2S *handle);
 /// <param name="channels">The number of channels to output on (must be 1 or 2 for I2S).</param>
 /// <param name="bits">The number of bits per sample (usually 16).</param>
 /// <param name="rate">The target sample rate of the output.</param>
-/// <param name="callback">The callback which will be used to fill the output buffer.</param>
+/// <param name="callback">The callback which will be used to fill the output buffer:
+///                        (data: pointer to data buffer, size: size of buffer in bytes).</param>
 /// <returns>ERROR_NONE on success or an error code on failure.</returns>
 int32_t I2S_Output(
     I2S *handle, I2S_Format format, unsigned channels, unsigned bits, unsigned rate,
-    bool (*callback)(void *, uintptr_t));
+    bool (*callback)(void *data, uintptr_t size));
 
 /// <summary>
 /// <para>Enables audio output on an I2S interface.</para>
@@ -60,11 +61,12 @@ int32_t I2S_Output(
 /// <param name="channels">The number of channels to input (must be 1 or 2 for I2S).</param>
 /// <param name="bits">The number of bits per sample (usually 16).</param>
 /// <param name="rate">The target sample rate of the input.</param>
-/// <param name="callback">The callback which will be used to process the input buffer.</param>
+/// <param name="callback">The callback which will be used to process the input buffer:
+///                        (data: pointer to data buffer, size: size of buffer in bytes)</param>
 /// <returns>ERROR_NONE on success or an error code on failure.</returns>
 int32_t I2S_Input(
     I2S *handle, I2S_Format format, unsigned channels, unsigned bits, unsigned rate,
-    bool (*callback)(void *, uintptr_t));
+    bool (*callback)(void *data, uintptr_t size));
 
 /// <summary>
 /// <para>Query the output sample rate of an I2S interface.</para>

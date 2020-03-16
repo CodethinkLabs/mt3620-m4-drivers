@@ -190,7 +190,7 @@ static void I2S_OutputUpdate(I2S *handle)
 
 int32_t I2S_Output(
     I2S *handle, I2S_Format format, unsigned channels, unsigned bits, unsigned rate,
-    bool (*callback)(void *, uintptr_t))
+    bool (*callback)(void *data, uintptr_t size))
 {
     if (!handle) {
         return ERROR_PARAMETER;
@@ -342,7 +342,7 @@ static void I2S_InputUpdate(I2S *handle)
 
 int32_t I2S_Input(
     I2S *handle, I2S_Format format, unsigned channels, unsigned bits, unsigned rate,
-    bool (*callback)(void *, uintptr_t))
+    bool (*callback)(void *data, uintptr_t size))
 {
     if (!handle) {
         return ERROR_PARAMETER;
