@@ -253,7 +253,7 @@ int32_t UART_Printf(UART *handle, const char *format, ...)
 
     char     tempBuffer[PRINT_TEMP_PRINTF_BUFFER] = {'\0'};
     unsigned tempIndex = 0;
-    int32_t  error;
+    int32_t  error = ERROR_NONE;
 
     /* Loop through string and look for format specifier */
     char       *start = NULL, *end = NULL;
@@ -261,7 +261,8 @@ int32_t UART_Printf(UART *handle, const char *format, ...)
     char        c;
     while (*format != '\0') {
         if (tempIndex >= (PRINT_TEMP_PRINTF_BUFFER - 1)) {
-            return ERROR_UART_PRINTF_INVALID;
+            error = ERROR_UART_PRINTF_INVALID;
+            break;
         }
 
         if (*format == '%') {
@@ -275,7 +276,8 @@ int32_t UART_Printf(UART *handle, const char *format, ...)
             spec = parseFormatSpecifier(
                 handle, start, &end);
             if (spec.error != ERROR_NONE) {
-                return error;
+                error = spec.error;
+                break;
             }
             format = end + 1;
             if (tempIndex > 0) {
@@ -284,59 +286,45 @@ int32_t UART_Printf(UART *handle, const char *format, ...)
                 tempIndex             = 0;
                 if ((error = UART_Print(
                     handle, (const char*)tempBuffer)) != ERROR_NONE) {
-                    return error;
+                    break;
                 }
             }
             /* Write formatted arg */
             switch (spec.type) {
             case 'd':
             case 'i':
-                if ((error = UART__PrintIntBaseFiller(
+                error = UART__PrintIntBaseFiller(
                     handle, va_arg(args, int), 10,
-                    spec.width, false, spec.filler)) != ERROR_NONE) {
-                    return error;
-                }
+                    spec.width, false, spec.filler);
                 break;
             case 'u':
-                if ((error = UART__PrintUIntBaseFiller(
+                error = UART__PrintUIntBaseFiller(
                     handle, va_arg(args, uint32_t), 10,
-                    spec.width, false, spec.filler)) != ERROR_NONE) {
-                    return error;
-                }
+                    spec.width, false, spec.filler);
                 break;
             case 'x':
-                if ((error = UART__PrintUIntBaseFiller(
+                error = UART__PrintUIntBaseFiller(
                     handle, va_arg(args, uint32_t), 16,
-                    spec.width, false, spec.filler)) != ERROR_NONE) {
-                    return error;
-                }
+                    spec.width, false, spec.filler);
                 break;
             case 'o':
-                if ((error = UART__PrintUIntBaseFiller(
+                error = UART__PrintUIntBaseFiller(
                     handle, va_arg(args, uint32_t), 8,
-                    spec.width, false, spec.filler)) != ERROR_NONE) {
-                    return error;
-                }
+                    spec.width, false, spec.filler);
                 break;
             case 'f':
-                if ((error = UART__PrintFloatFiller(
+                error = UART__PrintFloatFiller(
                     handle, (float)(va_arg(args, double)), spec.sigDigits,
-                    spec.width, spec.filler)) != ERROR_NONE) {
-                    return error;
-                }
+                    spec.width, spec.filler);
                 break;
             case 's':
-                if ((error = UART_Print(
-                    handle, va_arg(args, const char*))) != ERROR_NONE) {
-                    return error;
-                }
+                error = UART_Print(
+                    handle, va_arg(args, const char*));
                 break;
             case 'c':
                 c = (char)va_arg(args, int);
-                if ((error = UART_Print(
-                    handle, (const char*)(&c))) != ERROR_NONE) {
-                    return error;
-                }
+                error = UART_Print(
+                    handle, (const char*)(&c));
                 break;
             }
         }
@@ -345,12 +333,13 @@ int32_t UART_Printf(UART *handle, const char *format, ...)
             format++;
         }
     }
-    /* Write previously globbed tempBuffer */
-    tempBuffer[tempIndex] = '\0';
-    if ((error = UART_Print(
-        handle, (const char*)tempBuffer)) != ERROR_NONE) {
-        return error;
+
+    if (error == ERROR_NONE) {
+        /* Write previously globbed tempBuffer */
+        tempBuffer[tempIndex] = '\0';
+        error = UART_Print(handle, (const char*)tempBuffer);
     }
+
     va_end(args);
-    return ERROR_NONE;
+    return error;
 }
