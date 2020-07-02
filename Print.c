@@ -2,7 +2,6 @@
    Licensed under the MIT License. */
 
 #include "Print.h"
-#include <stdarg.h>
 #include <stddef.h>
 
 #define PRINT_MAX_WIDTH 10
@@ -246,10 +245,11 @@ static inline formatSpec parseFormatSpecifier(
     return spec;
 }
 
-int32_t UART_Printf(UART *handle, const char *format, ...)
+int32_t UART_vPrintf(UART *handle, const char *format, va_list args)
 {
-    va_list args;
-    va_start(args, format);
+    if (!handle) {
+        return ERROR_PARAMETER;
+    }
 
     char     tempBuffer[PRINT_TEMP_PRINTF_BUFFER] = {'\0'};
     unsigned tempIndex = 0;
@@ -339,6 +339,19 @@ int32_t UART_Printf(UART *handle, const char *format, ...)
         tempBuffer[tempIndex] = '\0';
         error = UART_Print(handle, (const char*)tempBuffer);
     }
+
+}
+
+
+int32_t UART_Printf(UART *handle, const char *format, ...)
+{
+    if (!handle) {
+        return ERROR_PARAMETER;
+    }
+    va_list args;
+    va_start(args, format);
+
+    int32_t error = UART_vPrintf(handle, format, args);
 
     va_end(args);
     return error;

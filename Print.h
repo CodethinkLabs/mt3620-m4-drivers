@@ -5,6 +5,7 @@
 #define AZURE_SPHERE_PRINT_H_
 
 #include "UART.h"
+#include <stdarg.h>
 #include <stdbool.h>
 
 /// <summary>Returned when user tries to use printf with invalid fmt spec.</summary>
@@ -108,10 +109,19 @@ static inline int32_t UART_PrintHexWidth(UART *handle, uint32_t value, uintptr_t
 /// specification (i.e. %08.7f) </para>
 /// </summary>
 /// <param name="handle">Which UART to print the value to.</param>
-/// <param name="...">2nd argument must be format string.</param>
+/// <param name="format">Format string.</param>
 /// <param name="...">Subsequent arguments are the objects to be printed.</param>
 /// <returns>ERROR_NONE on success, or an error code.</returns>
 int32_t UART_Printf(UART *handle, const char *format, ...)
     __attribute__ ((format (printf, 2, 3)));
+
+/// <summary>
+/// <para>Non variadic variant of printf that consumes a variable array (va_list)
+/// </summary>
+/// <param name="handle">Which UART to print the value to.</param>
+/// <param name="format">Format string.</param>
+/// <param name="args">va_list managed by user code.</param>
+/// <returns>ERROR_NONE on success, or an error code.</returns>
+int32_t UART_vPrintf(UART *handle, const char *format, va_list args);
 
 #endif
