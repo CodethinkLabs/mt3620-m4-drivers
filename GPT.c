@@ -476,7 +476,7 @@ uint32_t GPT_GetRunningTime(GPT *handle, GPT_Units units)
         return 0;
     }
 
-    return count * (units / speed);
+    return ((uint64_t)count * (uint64_t)units) / speed;
 }
 
 int32_t GPT_GetNumCycles(GPT* handle, uint32_t* numCycles)
