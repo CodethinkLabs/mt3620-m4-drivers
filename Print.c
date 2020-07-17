@@ -340,6 +340,7 @@ int32_t UART_vPrintf(UART *handle, const char *format, va_list args)
         error = UART_Print(handle, (const char*)tempBuffer);
     }
 
+    return error;
 }
 
 
