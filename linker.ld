@@ -49,5 +49,8 @@ SECTIONS
         *(.sysram)
     } >SYSRAM
 
+    . = ALIGN(4);
+    end = . ;
+
     StackTop = ORIGIN(TCM) + LENGTH(TCM);
 }
