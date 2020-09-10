@@ -45,7 +45,7 @@ static inline void ADC_DMADisable(){
     MT3620_DMA_FIELD_WRITE(MT3620_ADC_DMA_CHANNEL, start, str, 0);
 }
 
-static ADC_CountChannels(uint16_t channelMask)
+static uint8_t ADC_CountChannels(uint16_t channelMask)
 {
     uint8_t numChannels;
     for (numChannels = 0; channelMask; numChannels++) {
