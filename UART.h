@@ -9,6 +9,10 @@
 #include <stdint.h>
 
 
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
 /// <summary>Opaque UART handle.</summary>
 typedef struct UART UART;
 
@@ -77,5 +81,10 @@ int32_t UART_Read(UART *handle, void *data, uintptr_t size);
 /// <param name="handle">Which UART to read the read buffer size of.</param>
 /// <returns>Number of bytes available to be read.</returns>
 uintptr_t UART_ReadAvailable(UART *handle);
+
+
+#ifdef __cplusplus
+ }
+#endif
 
 #endif // #ifndef MT3620_UART_H_

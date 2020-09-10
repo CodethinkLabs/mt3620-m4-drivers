@@ -10,6 +10,10 @@
 #include "Common.h"
 #include "Platform.h"
 
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
 typedef struct AdcContext AdcContext;
 
 /// <summary>Returned when the user supplied FIFO is invalid for the number of channels.</summary>
@@ -113,5 +117,9 @@ int32_t ADC_ReadSync(
     AdcContext *handle, uint32_t dmaFifoSize,
     ADC_Data *data, uint32_t *rawData,
     uint16_t channel, uint16_t referenceVoltage);
+
+#ifdef __cplusplus
+ }
+#endif
 
 #endif

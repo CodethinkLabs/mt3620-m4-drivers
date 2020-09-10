@@ -7,6 +7,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
 /// <summary>NVIC Registers, ARM DDI 0403E.b S3.4.3.</summary>
 static const volatile uint32_t * const ICTR      = (const volatile uint32_t *)0xE000E004;
 static       volatile uint32_t * const NVIC_ISER = (      volatile uint32_t *)0xE000E100;
@@ -72,5 +76,9 @@ static inline void NVIC_DisableIRQ(unsigned irq)
     uint32_t mask   = 1U << (irq % 32);
     NVIC_ICER[offset] = mask;
 }
+
+#ifdef __cplusplus
+ }
+#endif
 
 #endif /* AZURE_SPHERE_NVIC_H_ */

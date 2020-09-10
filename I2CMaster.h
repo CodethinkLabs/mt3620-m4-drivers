@@ -9,6 +9,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
 /// <summary>Returned when an I2C transfer fails to receive an ACK.</summary>
 #define ERROR_I2C_ADDRESS_NACK        (ERROR_SPECIFIC - 1)
 
@@ -277,5 +281,9 @@ static inline int32_t I2CMaster_ReadSync(
     };
     return I2CMaster_TransferSequentialSync(handle, address, &transfer, 1);
 }
+
+#ifdef __cplusplus
+ }
+#endif
 
 #endif // #ifndef AZURE_SPHERE_I2CMASTER_H_
