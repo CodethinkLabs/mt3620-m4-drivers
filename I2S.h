@@ -10,6 +10,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
 /// <summary>Enum for audio input/output formats.</summary>
 typedef enum {
     /// <summary>This will disable input/output when passed.</summary>
@@ -81,5 +85,9 @@ unsigned I2S_GetOutputSampleRate(I2S *handle);
 /// <param name="handle">The I2S handle on which the input sample rate is queried.</param>
 /// <returns>The exact sample rate in herts of the input, or zero if disabled.</returns>
 unsigned I2S_GetInputSampleRate(I2S *handle);
+
+#ifdef __cplusplus
+ }
+#endif
 
 #endif // #ifndef AZURE_SPHERE_I2S_H_

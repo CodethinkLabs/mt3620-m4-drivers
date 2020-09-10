@@ -8,6 +8,10 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
 /// <summary>Returned when user tries to use printf with invalid fmt spec.</summary>
 #define ERROR_UART_PRINTF_INVALID (ERROR_SPECIFIC - 1)
 
@@ -123,5 +127,9 @@ int32_t UART_Printf(UART *handle, const char *format, ...)
 /// <param name="args">va_list managed by user code.</param>
 /// <returns>ERROR_NONE on success, or an error code.</returns>
 int32_t UART_vPrintf(UART *handle, const char *format, va_list args);
+
+#ifdef __cplusplus
+ }
+#endif
 
 #endif

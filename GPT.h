@@ -9,6 +9,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
 /// <summary>Returned when user tries to use running timer.</summary>
 #define ERROR_GPT_ALREADY_RUNNING       (ERROR_SPECIFIC - 1)
 
@@ -223,5 +227,8 @@ typedef struct {
 /// test speeds and the number of test speeds</param>
 void GPT_GetTestSpeeds(GPT *handle, GPT_TestSpeeds *testSpeeds);
 
+#ifdef __cplusplus
+ }
+#endif
 
 #endif // #ifndef AZURE_SPHERE_GPT_H_

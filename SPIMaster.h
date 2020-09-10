@@ -10,6 +10,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+ extern "C" {
+#endif
 
 /// <summary>SPI specific errors.</summary>
 #define ERROR_SPI_MODE            (ERROR_SPECIFIC - 1)
@@ -288,5 +291,9 @@ static inline int32_t  SPIMaster_WriteThenReadSync(
     };
     return SPIMaster_TransferSequentialSync(handle, transfer, 2);
 }
+
+#ifdef __cplusplus
+ }
+#endif
 
 #endif // #ifndef AZURE_SPHERE_SPIMASTER_H_

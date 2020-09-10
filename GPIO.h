@@ -9,6 +9,10 @@
 
 #include "Common.h"
 
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
 #define ERROR_GPIO_NOT_A_PIN             (ERROR_SPECIFIC - 1)
 #define ERROR_PWM_UNSUPPORTED_DUTY_CYCLE (ERROR_SPECIFIC - 2)
 #define ERROR_PWM_UNSUPPORTED_CLOCK_SEL  (ERROR_SPECIFIC - 3)
@@ -63,5 +67,9 @@ int32_t GPIO_Read(uint32_t pin, bool *state);
 /// <param name="offTime">The number of clock cycles the PWM signal is low for.</param>
 /// <returns>Zero on success or an error value as defined in this file or Common.h.</returns>
 int32_t PWM_ConfigurePin(uint32_t pin, uint32_t clockFrequency, uint32_t onTime, uint32_t offTime);
+
+#ifdef __cplusplus
+ }
+#endif
 
 #endif // #ifndef AZURE_SPHERE_GPIO_H_
