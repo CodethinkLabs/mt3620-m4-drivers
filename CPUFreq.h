@@ -8,6 +8,8 @@
  extern "C" {
 #endif
 
+#include <stdbool.h>
+
 bool     CPUFreq_Set(unsigned freq);
 unsigned CPUFreq_Get(void);
 
