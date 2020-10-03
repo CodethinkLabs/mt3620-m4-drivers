@@ -43,7 +43,12 @@ static const uint32_t UART_PRIORITY = 2;
 /// <param name="rxCallback">An optional callback to invoke when the UART receives data.
 /// This can be NULL if the application does not want to read any data from the UART. The
 /// application should call <see cref="UART_DequeueData" /> to retrieve the data.</param>
-UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned stopBits, void (*rxCallback)(void));
+UART *UART_Open(
+    Platform_Unit unit,
+    unsigned      baud,
+    UART_Parity   parity,
+    unsigned      stopBits,
+    void         (*rxCallback)(void));
 
 /// <summary>
 /// <para>Releases a handle once it's finished using a given UART interface. 
@@ -76,7 +81,7 @@ int32_t UART_Write(UART *handle, const void *data, uintptr_t size);
 int32_t UART_Read(UART *handle, void *data, uintptr_t size);
 
 /// <summary>
-/// This function fills returns the number of bytes currently buffered for a UART.
+/// This function returns the number of bytes currently buffered for a UART.
 /// </summary>
 /// <param name="handle">Which UART to read the read buffer size of.</param>
 /// <returns>Number of bytes available to be read.</returns>
@@ -87,4 +92,4 @@ uintptr_t UART_ReadAvailable(UART *handle);
  }
 #endif
 
-#endif // #ifndef MT3620_UART_H_
+#endif // #ifndef AZURE_SPHERE_UART_H_

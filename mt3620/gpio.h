@@ -411,7 +411,7 @@ typedef enum {
     MT3620_GPIO_BLOCK_COUNT,
 
     MT3620_GPIO_BLOCK_NOT_MAPPED
-} mt3620_gpio_block_e;
+} mt3620_gpio_block;
 
 static uint32_t mt3620_gpioBlockStart[MT3620_GPIO_BLOCK_COUNT + 1] = {
     [MT3620_GPIO_BLOCK_ADC]   = 41,
@@ -430,7 +430,7 @@ static uint32_t mt3620_gpioBlockStart[MT3620_GPIO_BLOCK_COUNT + 1] = {
     [MT3620_GPIO_BLOCK_I2S_1] = 61,
 };
 
-static mt3620_gpio_block_e mt3620_gpioPinMap[MT3620_GPIO_COUNT] = {
+static mt3620_gpio_block mt3620_gpioPinMap[MT3620_GPIO_COUNT] = {
     [ 0] = MT3620_GPIO_BLOCK_0,
     [ 1] = MT3620_GPIO_BLOCK_0,
     [ 2] = MT3620_GPIO_BLOCK_0,

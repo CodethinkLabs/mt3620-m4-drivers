@@ -8,7 +8,7 @@
 #include "mt3620/gpio.h"
 #include "mt3620/adc.h"
 
-static mt3620_gpio_block_e pinToBlock(uint32_t pin)
+static mt3620_gpio_block pinToBlock(uint32_t pin)
 {
     if (pin > MT3620_GPIO_COUNT) {
         return MT3620_GPIO_BLOCK_NOT_MAPPED;
@@ -16,7 +16,7 @@ static mt3620_gpio_block_e pinToBlock(uint32_t pin)
     return mt3620_gpioPinMap[pin];
 }
 
-static uint32_t getPinMask(uint32_t pin, mt3620_gpio_block_e block)
+static uint32_t getPinMask(uint32_t pin, mt3620_gpio_block block)
 {
     if (block > MT3620_GPIO_BLOCK_NOT_MAPPED) {
         return 0U;
@@ -27,7 +27,7 @@ static uint32_t getPinMask(uint32_t pin, mt3620_gpio_block_e block)
 
 static int32_t ConfigurePin(uint32_t pin, bool asInput)
 {
-    mt3620_gpio_block_e block = pinToBlock(pin);
+    mt3620_gpio_block block = pinToBlock(pin);
     if (block >= MT3620_GPIO_BLOCK_NOT_MAPPED) {
         return ERROR_GPIO_NOT_A_PIN;
     }
@@ -57,7 +57,7 @@ int32_t GPIO_ConfigurePinForInput(uint32_t pin)
 
 int32_t GPIO_Write(uint32_t pin, bool state)
 {
-    mt3620_gpio_block_e block = pinToBlock(pin);
+    mt3620_gpio_block block = pinToBlock(pin);
     if (block >= MT3620_GPIO_BLOCK_NOT_MAPPED) {
         return ERROR_GPIO_NOT_A_PIN;
     }
@@ -75,7 +75,7 @@ int32_t GPIO_Write(uint32_t pin, bool state)
 
 int32_t GPIO_Read(uint32_t pin, bool *state)
 {
-    mt3620_gpio_block_e block = pinToBlock(pin);
+    mt3620_gpio_block block = pinToBlock(pin);
     if (block >= MT3620_GPIO_BLOCK_NOT_MAPPED) {
         return ERROR_GPIO_NOT_A_PIN;
     }
@@ -104,7 +104,7 @@ int32_t GPIO_Read(uint32_t pin, bool *state)
 
 int32_t PWM_ConfigurePin(uint32_t pin, uint32_t clockFrequency, uint32_t onTime, uint32_t offTime)
 {
-    mt3620_gpio_block_e block = pinToBlock(pin);
+    mt3620_gpio_block block = pinToBlock(pin);
 
     if ((block < MT3620_GPIO_BLOCK_0) || (block > MT3620_GPIO_BLOCK_2)) {
         return ERROR_PWM_NOT_A_PIN;
