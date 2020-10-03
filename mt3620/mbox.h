@@ -16,8 +16,8 @@ typedef union __attribute__((__packed__)) {
 
 typedef union __attribute__((__packed__)) {
     struct __attribute__((__packed__)) {
-        bool           rd_dly     :  8;
-        bool           rcs_dly    :  2;
+        uint32_t       rd_dly     :  8;
+        uint32_t       rcs_dly    :  2;
         const unsigned res_31_10  : 22;
     };
 
@@ -97,6 +97,6 @@ static volatile mt3620_mbox_t * const mt3620_mbox[MT3620_MBOX_COUNT] = {
 #define MT3620_MBOX_FIELD_READ(i, reg, field) ((mt3620_##reg##_t)mt3620_mbox[i]->reg).field
 #define MT3620_MBOX_FIELD_WRITE(i, reg, field, value) do { \
     mt3620_##reg##_t reg = { .mask = mt3620_mbox[i]->reg }; \
-    reg.field = value; mt3620_mbox->reg = reg.mask; } while (0)
+    reg.field = value; mt3620_mbox[i]->reg = reg.mask; } while (0)
 
 #endif // #ifndef MT3620_REG_MBOX_H_
