@@ -31,7 +31,7 @@
 /// <summary>Returned when user tries to resume a timer not paused</summary>
 #define ERROR_GPT_NOT_PAUSED            (ERROR_SPECIFIC - 6)
 
-/// <summary>Opaque GPT Master handle.</summary>
+/// <summary>Opaque GPT handle.</summary>
 typedef struct GPT GPT;
 
 typedef enum {

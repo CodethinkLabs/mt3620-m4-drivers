@@ -6,14 +6,13 @@
 #include "NVIC.h"
 #include "mt3620/gpt.h"
 
-#include <stdarg.h>
 #include <stddef.h>
 
 
 // Define this to enable setting of speed in GPT3
 #define GPT3_ENABLE_NON_STANDARD_SPEED
 
-#define MAX_TIMER_INDEX (MT3620_UNIT_GPT_COUNT + MT3620_UNIT_GPT0)
+#define MAX_TIMER_INDEX (MT3620_UNIT_GPT_COUNT + MT3620_UNIT_GPT0 - 1)
 
 #define GPT_PRIORITY 2
 #define GPT01_IRQ    1
@@ -27,7 +26,6 @@ struct GPT {
     uint32_t           numCycles;
     volatile uint32_t  initCnt;
     volatile bool      paused;
-    volatile bool      error;
 };
 
 static GPT context[MT3620_UNIT_GPT_COUNT] = {0};
@@ -408,7 +406,7 @@ int32_t GPT_SetMode(GPT *handle, GPT_Mode mode)
 
 uint32_t GPT_GetCount(GPT *handle)
 {
-    if (!handle || (handle->id >= MAX_TIMER_INDEX)) {
+    if (!handle || (handle->id > MAX_TIMER_INDEX)) {
         return 0;
     }
 
@@ -438,7 +436,7 @@ uint32_t GPT_GetCount(GPT *handle)
 
 uint32_t GPT_GetRunningTime(GPT *handle, GPT_Units units)
 {
-    if (!handle || (handle->id >= MAX_TIMER_INDEX)) {
+    if (!handle || (handle->id > MAX_TIMER_INDEX)) {
         return 0;
     }
 
@@ -484,7 +482,7 @@ int32_t GPT_GetNumCycles(GPT* handle, uint32_t* numCycles)
     if (!handle || !numCycles) {
         return ERROR_PARAMETER;
     }
-    if (handle->id >= MAX_TIMER_INDEX) {
+    if (handle->id > MAX_TIMER_INDEX) {
         return ERROR_UNSUPPORTED;
     }
 
@@ -505,7 +503,9 @@ static void GPT_ToggleInterrupts(GPT *handle, bool enable)
     switch (handle->id) {
     case MT3620_UNIT_GPT0:
     case MT3620_UNIT_GPT1:
-        if (context[getGPTIndex(MT3620_UNIT_GPT0)].open || context[getGPTIndex(MT3620_UNIT_GPT1)].open) {
+        if (context[getGPTIndex(MT3620_UNIT_GPT0)].open ||
+            context[getGPTIndex(MT3620_UNIT_GPT1)].open)
+        {
             ableToDisable = false;
         }
         irq = GPT01_IRQ;
@@ -527,7 +527,7 @@ static void GPT_ToggleInterrupts(GPT *handle, bool enable)
 GPT* GPT_Open(int32_t id, float speedHz, GPT_Mode mode)
 {
     int32_t index = getGPTIndex(id);
-    if ((id >= MAX_TIMER_INDEX) || (index < 0)) {
+    if ((id > MAX_TIMER_INDEX) || (index < 0)) {
         return NULL;
     }
 
@@ -557,7 +557,6 @@ GPT* GPT_Open(int32_t id, float speedHz, GPT_Mode mode)
     context[index].numCycles = 0;
     context[index].initCnt   = 0;
     context[index].paused    = false;
-    context[index].error     = false;
 
     GPT_ToggleInterrupts(&context[index], true);
 
@@ -895,14 +894,10 @@ static void GPT_IRQ(GPT *handle)
         return;
     }
 
-    // TODO: Return error from callback?
-    int32_t status = ERROR_NONE;
-
     if (handle->callback) {
         handle->callback(handle);
     }
 
-    handle->error = (status != ERROR_NONE);
     handle->numCycles++;
 }
 
@@ -939,7 +934,7 @@ void gpt3_int_b(void)
     }
 }
 
-#
+
 ///------------------------Test helpers--------------------------
 
 void GPT_GetTestSpeeds(
