@@ -10,22 +10,36 @@ extern uintptr_t StackTop; // &StackTop == end of TCM0
 
 _Noreturn void RTCoreMain(void);
 
-static _Noreturn void DefaultExceptionHandler(void)
-{
-    while (true) {
-        // Empty.
-    }
-}
+// Exception Handlers
+static _Noreturn void DefaultExceptionHandler(void)      { while (true); }
 
-void __attribute__((weak, alias("DefaultExceptionHandler"))) NMI(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) HardFault(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) MPUFault(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) BusFault(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) UsageFault(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) SVCall(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) DebugMonitor(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) PendSV(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) SysTick(void);
+static _Noreturn void NMIExceptionHandler(void)          { while (true); }
+
+static _Noreturn void HardFaultExceptionHandler(void)    { while (true); }
+
+static _Noreturn void MPUFaultExceptionHandler(void)     { while (true); }
+
+static _Noreturn void BusFaultExceptionHandler(void)     { while (true); }
+
+static _Noreturn void UsageFaultExceptionHandler(void)   { while (true); }
+
+static _Noreturn void SVCallExceptionHandler(void)       { while (true); }
+
+static _Noreturn void DebugMonitorExceptionHandler(void) { while (true); }
+
+static _Noreturn void PendSVExceptionHandler(void)       { while (true); }
+
+static _Noreturn void SysTickExceptionHandler(void)      { while (true); }
+
+void __attribute__((weak, alias("NMIExceptionHandler")))        NMI(void);
+void __attribute__((weak, alias("HardFaultExceptionHandler")))  HardFault(void);
+void __attribute__((weak, alias("MPUFaultExceptionHandler")))   MPUFault(void);
+void __attribute__((weak, alias("BusFaultExceptionHandler")))   BusFault(void);
+void __attribute__((weak, alias("UsageFaultExceptionHandler"))) UsageFault(void);
+void __attribute__((weak, alias("SVCallExceptionHandler")))     SVCall(void);
+void __attribute__((weak, alias("DebugMonitorExceptionHandler"))) DebugMonitor(void);
+void __attribute__((weak, alias("PendSVExceptionHandler")))     PendSV(void);
+void __attribute__((weak, alias("SysTickExceptionHandler")))    SysTick(void);
 
 void __attribute__((weak, alias("DefaultExceptionHandler"))) wic_int_wake_up(void);
 void __attribute__((weak, alias("DefaultExceptionHandler"))) gpt_int_b(void);
