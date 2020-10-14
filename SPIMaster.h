@@ -133,6 +133,24 @@ int32_t SPIMaster_TransferSequentialAsync(
     uint32_t count, void (*callback)(int32_t status, uintptr_t data_count));
 
 /// <summary>
+/// <para>Identical to SPIMaster_TransferSequentialAsync, but allows for user
+/// to provide pointer to data that can be accessed on transfer completion
+/// or cancelation. Note that this callback happens within an IRQ, so if there
+/// is significant computation, it might be best to defer execution.</para>
+/// </summary>
+/// <param name="handle">SPI handle to perform the transfer on.</param>
+/// <param name="transfer">A pointer to the base of an array of transfers, for more information
+/// look at <see cref="SPITransfer"/>.</param>
+/// <param name="count">The total number of transfers in the transfer array.</param>
+/// <param name="callback">Callback called once the transfer is completed.</param>
+/// <param name="userData">Data available in callback.</param>
+/// <returns>Returns ERROR_NONE on success, or an error code on failure.</returns>
+int32_t SPIMaster_TransferSequentialAsync_UserData(
+    SPIMaster *handle, SPITransfer *transfer,
+    uint32_t count, void (*callback)(
+        int32_t status, uintptr_t data_count, void *userData), void *userData);
+
+/// <summary>
 /// <para>Cancels the ongoing transfer.</para>
 /// </summary>
 /// <param name="handle">SPI handle to cancel transfer on.</param>
