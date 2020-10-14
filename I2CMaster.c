@@ -30,7 +30,9 @@ static inline void fifoClearSubordinate(unsigned id, bool tx, bool rx)
 struct I2CMaster {
     bool                open;
     uint32_t            id;
-    void              (*callback)(int32_t, uintptr_t);
+    void              (*callback)    (int32_t, uintptr_t);
+    void              (*callbackUser)(int32_t, uintptr_t, void*);
+    void               *userData;
     uintptr_t           txQueued, rxQueued;
     const I2C_Transfer *transfer;
     uint32_t            count;
@@ -71,15 +73,17 @@ I2CMaster *I2CMaster_Open(Platform_Unit unit)
     // Enable master mode immediately to reduce risk of collision with subordinate device.
     MT3620_I2C_FIELD_WRITE(id, mm_con0, master_en, true);
 
-    context[id].id       = id;
-    context[id].open     = true;
-    context[id].callback = NULL;
-    context[id].txQueued = 0;
-    context[id].rxQueued = 0;
-    context[id].transfer = NULL;
-    context[id].count    = 0;
-    context[id].useDMA   = false;
-    context[id].error    = false;
+    context[id].id           = id;
+    context[id].open         = true;
+    context[id].callback     = NULL;
+    context[id].callbackUser = NULL;
+    context[id].userData     = NULL;
+    context[id].txQueued     = 0;
+    context[id].rxQueued     = 0;
+    context[id].transfer     = NULL;
+    context[id].count        = 0;
+    context[id].useDMA       = false;
+    context[id].error        = false;
 
     // Enable Sync mode.
     MT3620_I2C_FIELD_WRITE(id, mm_pad_con0, sync_en, true);
@@ -234,19 +238,17 @@ static bool addrOnBus(const void* ptr)
     return true;
 }
 
-int32_t I2CMaster_TransferSequentialAsync(
+int32_t I2CMaster_TransferSequentialAsync_UserData(
     I2CMaster *handle, uint16_t address,
     const I2C_Transfer *transfer, uint32_t count,
-    void (*callback)(int32_t status, uintptr_t count))
+    void (*callback)(int32_t status, uintptr_t count, void* userData),
+    void *userData)
 {
     if (!handle) {
         return ERROR_PARAMETER;
     }
     if (!handle->open) {
         return ERROR_HANDLE_CLOSED;
-    }
-    if (!callback) {
-        return ERROR_PARAMETER;
     }
     if (handle->transfer) {
         return ERROR_BUSY;
@@ -324,12 +326,13 @@ int32_t I2CMaster_TransferSequentialAsync(
         useDMA = true;
     }
 
-    handle->callback = callback;
-    handle->useDMA   = useDMA;
-    handle->txQueued = wdata;
-    handle->rxQueued = rdata;
-    handle->transfer = transfer;
-    handle->count    = count;
+    handle->callbackUser = callback;
+    handle->userData     = userData;
+    handle->useDMA       = useDMA;
+    handle->txQueued     = wdata;
+    handle->rxQueued     = rdata;
+    handle->transfer     = transfer;
+    handle->count        = count;
 
     mt3620_i2c[handle->id]->mm_slave_id = address;
 
@@ -410,36 +413,64 @@ int32_t I2CMaster_TransferSequentialAsync(
     return ERROR_NONE;
 }
 
-
-static volatile bool I2CMaster_TransferSequentialSync_Ready = false;
-static int32_t       I2CMaster_TransferSequentialSync_Status;
-static int32_t       I2CMaster_TransferSequentialSync_Count;
-
-static void I2CMaster_TransferSequentialSync_Callback(int32_t status, uintptr_t count)
+int32_t I2CMaster_TransferSequentialAsync(
+    I2CMaster *handle, uint16_t address,
+    const I2C_Transfer *transfer, uint32_t count,
+    void (*callback)(int32_t status, uintptr_t count))
 {
-    I2CMaster_TransferSequentialSync_Status = status;
-    I2CMaster_TransferSequentialSync_Count  = count;
-    I2CMaster_TransferSequentialSync_Ready  = true;
+    if (!handle || !callback) {
+        return ERROR_PARAMETER;
+    }
+
+    handle->callback = callback;
+
+    int32_t error = I2CMaster_TransferSequentialAsync_UserData(
+        handle, address, transfer, count, NULL, NULL);
+
+    if (error != ERROR_NONE) {
+        handle->callback = NULL;
+    }
+
+    return error;
+}
+
+typedef struct {
+    volatile bool ready;
+    int32_t       status;
+    int32_t       count;
+} I2CMaster_TransferSequentialSync_State;
+
+static void I2CMaster_TransferSequentialSync_Callback(
+    int32_t status, uintptr_t count, void *userData)
+{
+    if (!userData) {
+        return;
+    }
+
+    I2CMaster_TransferSequentialSync_State *state = userData;
+    state->status = status;
+    state->count  = count;
+    state->ready  = true;
 }
 
 int32_t I2CMaster_TransferSequentialSync(
     I2CMaster *handle, uint16_t address,
     const I2C_Transfer *transfer, uint32_t count)
 {
-    I2CMaster_TransferSequentialSync_Ready = false;
-    int32_t status = I2CMaster_TransferSequentialAsync(
+    I2CMaster_TransferSequentialSync_State state = {0};
+    int32_t status = I2CMaster_TransferSequentialAsync_UserData(
         handle, address, transfer, count,
-        I2CMaster_TransferSequentialSync_Callback);
+        I2CMaster_TransferSequentialSync_Callback, &state);
 
     if (status != ERROR_NONE) {
         return status;
     }
 
-    while (!I2CMaster_TransferSequentialSync_Ready) {
+    while (!state.ready) {
         __asm__("wfi");
     }
 
-    return I2CMaster_TransferSequentialSync_Status;
+    return state.status;
 }
 
 
@@ -521,14 +552,18 @@ static void I2CMaster_IRQ(Platform_Unit unit)
 
     if (handle->callback) {
         handle->callback(status, dataCount);
+    } else if (handle->callbackUser) {
+        handle->callbackUser(status, dataCount, handle->userData);
     }
 
-    handle->error    = (status != ERROR_NONE);
-    handle->transfer = NULL;
-    handle->count    = 0;
-    handle->txQueued = 0;
-    handle->rxQueued = 0;
-    handle->callback = NULL;
+    handle->error        = (status != ERROR_NONE);
+    handle->transfer     = NULL;
+    handle->count        = 0;
+    handle->txQueued     = 0;
+    handle->rxQueued     = 0;
+    handle->callback     = NULL;
+    handle->callbackUser = NULL;
+    handle->userData     = NULL;
 }
 
 void isu_g0_i2c_irq(void) { I2CMaster_IRQ(MT3620_UNIT_ISU0); }
