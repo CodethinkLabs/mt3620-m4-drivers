@@ -31,16 +31,18 @@ typedef struct {
 } SPIMaster_TransferGlob;
 
 struct SPIMaster {
-    uint32_t               id;
-    bool                   open;
-    bool                   dma;
-    uint32_t               csLine;
-    void                   (*csCallback)(SPIMaster*, bool);
-    bool                   csEnable;
-    void                   (*callback)(int32_t, uintptr_t);
-    SPIMaster_TransferGlob glob[SPI_MASTER_TRANSFER_COUNT_MAX];
-    unsigned               globCount, globTransferred;
-    int32_t                dataCount;
+    uint32_t                id;
+    bool                    open;
+    bool                    dma;
+    uint32_t                csLine;
+    void                    (*csCallback)(SPIMaster*, bool);
+    bool                    csEnable;
+    void                    (*callback)(int32_t, uintptr_t);
+    void                    (*callbackUser)(int32_t, uintptr_t, void*);
+    void                   *userData;
+    SPIMaster_TransferGlob  glob[SPI_MASTER_TRANSFER_COUNT_MAX];
+    unsigned                globCount, globTransferred;
+    int32_t                 dataCount;
 };
 
 static SPIMaster spiContext[MT3620_SPI_COUNT] = { 0 };
@@ -223,6 +225,8 @@ SPIMaster *SPIMaster_Open(Platform_Unit unit)
     spiContext[id].csCallback         = NULL;
     spiContext[id].csEnable           = false;
     spiContext[id].callback           = NULL;
+    spiContext[id].callbackUser       = NULL;
+    spiContext[id].userData           = NULL;
     spiContext[id].globCount          = 0;
     spiContext[id].globTransferred    = 0;
     spiContext[id].dataCount          = 0;
@@ -396,11 +400,10 @@ static int32_t SPIMaster_TransferSequentialAsyncGlob(
     SPIMaster              *handle,
     SPIMaster_TransferGlob *glob,
     uint32_t                count,
-    void(*callback)         (int32_t status, uintptr_t dataCount))
+    void(*callback)     (int32_t status, uintptr_t dataCount),
+    void(*callbackUser) (int32_t status, uintptr_t dataCount, void *userData),
+    void                   *userData)
 {
-    if (!callback) {
-        return ERROR_PARAMETER;
-    }
     if (!handle->open) {
         return ERROR_HANDLE_CLOSED;
     }
@@ -409,6 +412,8 @@ static int32_t SPIMaster_TransferSequentialAsyncGlob(
     }
 
     handle->callback        = callback;
+    handle->callbackUser    = callbackUser;
+    handle->userData        = userData;
     handle->globCount       = count;
     handle->globTransferred = 0;
     handle->dataCount       = 0;
@@ -556,21 +561,21 @@ static void SPIMaster_TransferGlobFinalize(SPIMaster_TransferGlob *glob)
 #endif // #ifdef SPI_ALLOW_TRANSFER_WRITE
 }
 
-int32_t SPIMaster_TransferSequentialAsync(
+static int32_t SPIMaster_TransferSequentialAsync_Wrapper(
     SPIMaster   *handle,
     SPITransfer *transfer,
     uint32_t     count,
-    void        (*callback)(int32_t status, uintptr_t data_count))
+    void        (*callback)(
+        int32_t status, uintptr_t data_count),
+    void        (*callbackUser)(
+        int32_t status, uintptr_t data_count, void *userData),
+    void        *userData)
 {
     if (!handle) {
         return ERROR_PARAMETER;
     }
     if (!transfer || (count == 0)) {
         return ERROR_PARAMETER;
-    }
-
-    if (handle->callback) {
-        return ERROR_BUSY;
     }
 
     SPIMaster_TransferGlob *glob = handle->glob;
@@ -600,7 +605,46 @@ int32_t SPIMaster_TransferSequentialAsync(
 
     handle->globCount = (g + 1);
     return SPIMaster_TransferSequentialAsyncGlob(handle, handle->glob,
-                                                 handle->globCount, callback);
+                                                 handle->globCount, callback,
+                                                 callbackUser, userData);
+}
+
+int32_t SPIMaster_TransferSequentialAsync(
+    SPIMaster   *handle,
+    SPITransfer *transfer,
+    uint32_t     count,
+    void        (*callback)(int32_t status, uintptr_t data_count))
+{
+    if (!handle) {
+        return ERROR_PARAMETER;
+    }
+
+    if (handle->callback) {
+        return ERROR_BUSY;
+    }
+
+    return SPIMaster_TransferSequentialAsync_Wrapper(
+        handle, transfer, count, callback, NULL, NULL);
+}
+
+int32_t SPIMaster_TransferSequentialAsync_UserData(
+    SPIMaster   *handle,
+    SPITransfer *transfer,
+    uint32_t     count,
+    void        (*callback)(
+        int32_t status, uintptr_t data_count, void *userData),
+    void        *userData)
+{
+    if (!handle) {
+        return ERROR_PARAMETER;
+    }
+
+    if (handle->callback) {
+        return ERROR_BUSY;
+    }
+
+    return SPIMaster_TransferSequentialAsync_Wrapper(
+        handle, transfer, count, NULL, callback, userData);
 }
 
 int32_t SPIMaster_TransferCancel(SPIMaster *handle)
@@ -622,6 +666,9 @@ int32_t SPIMaster_TransferCancel(SPIMaster *handle)
     if (handle->callback) {
         handle->callback(ERROR_SPI_TRANSFER_CANCEL, 0);
         handle->callback = NULL;
+    } else if (handle->callbackUser) {
+        handle->callbackUser(ERROR_SPI_TRANSFER_CANCEL, 0, handle->userData);
+        handle->callbackUser = NULL;
     }
 
     int32_t status = ERROR_NONE;
@@ -734,6 +781,9 @@ static void SPIMaster_IRQ(Platform_Unit unit)
         if (handle->callback) {
             handle->callback(status, handle->dataCount);
             handle->callback = NULL;
+        } else if (handle->callbackUser) {
+            handle->callbackUser(status, handle->dataCount, handle->userData);
+            handle->callbackUser = NULL;
         }
     }
 }
