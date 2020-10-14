@@ -175,7 +175,8 @@ int32_t GPT_Resume(GPT *handle);
 /// <param name="units">Units of timeout specified.</param>
 /// <param name="callback">Function to invoke in interrupt context when the
 /// timer expires. Is passed a handle to the timer, so has callback access to
-/// this same API</param>
+/// this same API. Note that this callback happens within an interrupt, so
+/// if there is significant computation, it might be best to defer execution</param>
 /// <returns>ERROR_NONE on success or an error code.</returns>
 int32_t GPT_StartTimeout(
     GPT       *handle,
