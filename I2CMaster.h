@@ -61,7 +61,7 @@ typedef struct {
 I2CMaster *I2CMaster_Open(Platform_Unit unit);
 
 /// <summary>
-/// <para>Releases a handle once it's finished using a given I2C interface. 
+/// <para>Releases a handle once it's finished using a given I2C interface.
 /// Once released the handle is free to be opened again.</para>
 /// </summary>
 /// <param name="handle">The I2C handle which is to be released.</param>
@@ -98,6 +98,28 @@ int32_t I2CMaster_TransferSequentialAsync(
     I2CMaster *handle, uint16_t address,
     const I2C_Transfer *transfer, uint32_t count,
     void (*callback)(int32_t status, uintptr_t count));
+
+/// <summary>
+/// <para>Identical to I2CMaster_TransferSequentialAsync, but with facility for
+/// user to provide pointer to data that can be accessed in the completetion
+/// callback. Note that this callback happens in an interrupt, so if extensive
+/// computation is required, it might make sense to defer execution.</para>
+/// <para>The maximum queue length and transfer sizes are determined by the target hardware.</para>
+/// </summary>
+/// <param name="handle">The I2C handle to perform the transfer on.</param>
+/// <param name="address">The subordinate device address of the target I2C device.</param>
+/// <param name="transfer">A pointer to the base of an array of transfers, for more information
+/// look at <see cref="I2C_Transfer"/>.</param>
+/// <param name="count">The total number of transfers in the transfer array.</param>
+/// <param name="callback">A pointer to a function which will be called once the transfer is
+/// completed.</param>
+/// <param name="userData">Pointer to data that can be accessed in completion callback.</param>
+/// <returns>ERROR_NONE on success or an error code.</returns>
+int32_t I2CMaster_TransferSequentialAsync_UserData(
+    I2CMaster *handle, uint16_t address,
+    const I2C_Transfer *transfer, uint32_t count,
+    void (*callback)(int32_t status, uintptr_t count, void* userData),
+    void *userData);
 
 /// <summary>
 /// <para>Executes a back-to-back write then read operations on the I2C interface provided.</para>
