@@ -3,10 +3,13 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "GPIO.h"
-#include "mt3620/gpio.h"
+#include "NVIC.h"
 #include "mt3620/adc.h"
+#include "mt3620/gpio.h"
+#include "mt3620/irq.h"
 
 static mt3620_gpio_block pinToBlock(uint32_t pin)
 {
@@ -210,4 +213,56 @@ int32_t PWM_ConfigurePin(uint32_t pin, uint32_t clockFrequency, uint32_t onTime,
     }
 
     return ERROR_NONE;
+}
+
+
+#define GPIO_EINT_PRIORITY 2
+
+
+int32_t EINT_ConfigurePin(
+    uint32_t           pin,
+    gpio_eint_attr_t  *attr)
+{
+    if (pin >= GPIO_EINT_PIN_COUNT) {
+        return ERROR_EINT_NOT_A_PIN;
+    }
+
+    gpio_eint_attr_t attribute = attr ? *attr : gpioEINTAttrDefault;
+
+    if (attribute.freq >= GPIO_EINT_DBNC_FREQ_INVALID) {
+        return ERROR_EINT_ATTRIBUTE;
+    }
+
+    MT3620_IRQ_DBNC_FIELD_WRITE(dbnc_con, en, pin, true);
+    MT3620_IRQ_DBNC_FIELD_WRITE(dbnc_con, pol, pin, attribute.positive);
+    MT3620_IRQ_DBNC_FIELD_WRITE(dbnc_con, dual, pin, attribute.dualEdge);
+    MT3620_IRQ_DBNC_FIELD_WRITE(dbnc_con, prescal, pin, attribute.freq);
+
+    NVIC_EnableIRQ(
+        MT3620_IRQ_EINT_INTERRUPT(pin), GPIO_EINT_PRIORITY);
+
+    return ERROR_NONE;
+}
+
+
+int32_t EINT_DeConfigurePin(uint32_t pin)
+{
+    if (pin >= GPIO_EINT_PIN_COUNT) {
+        return ERROR_EINT_NOT_A_PIN;
+    }
+
+    mt3620_irq->dbnc_con[pin] = 0;
+
+    NVIC_DisableIRQ(MT3620_IRQ_EINT_INTERRUPT(pin));
+    return ERROR_NONE;
+}
+
+
+uint8_t EINT_GetDebounceCounter(uint32_t pin)
+{
+    if (pin >= GPIO_EINT_PIN_COUNT) {
+        return 0;
+    }
+
+    return MT3620_IRQ_DBNC_FIELD_READ(dbnc_con, cnt, pin);
 }

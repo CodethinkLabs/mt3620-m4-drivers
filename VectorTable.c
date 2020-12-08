@@ -61,30 +61,30 @@ void __attribute__((weak, alias("DefaultExceptionHandler"))) cm4_mbox_m4b_fifo_i
 void __attribute__((weak, alias("DefaultExceptionHandler"))) cm4_mbox_m4b2m4a_sw_int(void);
 void __attribute__((weak, alias("DefaultExceptionHandler"))) mbox_a7n_wake_m4a_int(void);
 void __attribute__((weak, alias("DefaultExceptionHandler"))) mbox_m4b_wake_m4a_int(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g0_irq0(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g0_irq1(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g0_irq2(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g0_irq3(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g1_irq0(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g1_irq1(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g1_irq2(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g1_irq3(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g2_irq0(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g2_irq1(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g2_irq2(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g2_irq3(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g3_irq0(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g3_irq1(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g3_irq2(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g3_irq3(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g4_irq0(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g4_irq1(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g4_irq2(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g4_irq3(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g5_irq0(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g5_irq1(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g5_irq2(void);
-void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g5_irq3(void);
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g0_irq0(void); // EINT0
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g0_irq1(void); // EINT1
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g0_irq2(void); // EINT2
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g0_irq3(void); // EINT3
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g1_irq0(void); // EINT4
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g1_irq1(void); // EINT5
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g1_irq2(void); // EINT6
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g1_irq3(void); // EINT7
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g2_irq0(void); // EINT8
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g2_irq1(void); // EINT9
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g2_irq2(void); // EINT10
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g2_irq3(void); // EINT11
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g3_irq0(void); // EINT12
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g3_irq1(void); // EINT13
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g3_irq2(void); // EINT14
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g3_irq3(void); // EINT15
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g4_irq0(void); // EINT16
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g4_irq1(void); // EINT17
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g4_irq2(void); // EINT18
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g4_irq3(void); // EINT19
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g5_irq0(void); // EINT20
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g5_irq1(void); // EINT21
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g5_irq2(void); // EINT22
+void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g5_irq3(void); // EINT23
 void __attribute__((weak, alias("DefaultExceptionHandler"))) isu_g0_i2c_irq(void);
 void __attribute__((weak, alias("DefaultExceptionHandler"))) isu_g0_spim_irq(void);
 void __attribute__((weak, alias("DefaultExceptionHandler"))) isu_g0_uart_irq_b(void);
@@ -190,30 +190,30 @@ const void (*ExceptionVectorTable[])(void)
         [INT(17)] = cm4_mbox_m4b2m4a_sw_int,
         [INT(18)] = mbox_a7n_wake_m4a_int,
         [INT(19)] = mbox_m4b_wake_m4a_int,
-        [INT(20)] = gpio_g0_irq0,
-        [INT(21)] = gpio_g0_irq1,
-        [INT(22)] = gpio_g0_irq2,
-        [INT(23)] = gpio_g0_irq3,
-        [INT(24)] = gpio_g1_irq0,
-        [INT(25)] = gpio_g1_irq1,
-        [INT(26)] = gpio_g1_irq2,
-        [INT(27)] = gpio_g1_irq3,
-        [INT(28)] = gpio_g2_irq0,
-        [INT(29)] = gpio_g2_irq1,
-        [INT(30)] = gpio_g2_irq2,
-        [INT(31)] = gpio_g2_irq3,
-        [INT(32)] = gpio_g3_irq0,
-        [INT(33)] = gpio_g3_irq1,
-        [INT(34)] = gpio_g3_irq2,
-        [INT(35)] = gpio_g3_irq3,
-        [INT(36)] = gpio_g4_irq0,
-        [INT(37)] = gpio_g4_irq1,
-        [INT(38)] = gpio_g4_irq2,
-        [INT(39)] = gpio_g4_irq3,
-        [INT(40)] = gpio_g5_irq0,
-        [INT(41)] = gpio_g5_irq1,
-        [INT(42)] = gpio_g5_irq2,
-        [INT(43)] = gpio_g5_irq3,
+        [INT(20)] = gpio_g0_irq0, // EINT0
+        [INT(21)] = gpio_g0_irq1, // EINT1
+        [INT(22)] = gpio_g0_irq2, // EINT2
+        [INT(23)] = gpio_g0_irq3, // EINT3
+        [INT(24)] = gpio_g1_irq0, // EINT4
+        [INT(25)] = gpio_g1_irq1, // EINT5
+        [INT(26)] = gpio_g1_irq2, // EINT6
+        [INT(27)] = gpio_g1_irq3, // EINT7
+        [INT(28)] = gpio_g2_irq0, // EINT8
+        [INT(29)] = gpio_g2_irq1, // EINT9
+        [INT(30)] = gpio_g2_irq2, // EINT10
+        [INT(31)] = gpio_g2_irq3, // EINT11
+        [INT(32)] = gpio_g3_irq0, // EINT12
+        [INT(33)] = gpio_g3_irq1, // EINT13
+        [INT(34)] = gpio_g3_irq2, // EINT14
+        [INT(35)] = gpio_g3_irq3, // EINT15
+        [INT(36)] = gpio_g4_irq0, // EINT16
+        [INT(37)] = gpio_g4_irq1, // EINT17
+        [INT(38)] = gpio_g4_irq2, // EINT18
+        [INT(39)] = gpio_g4_irq3, // EINT19
+        [INT(40)] = gpio_g5_irq0, // EINT20
+        [INT(41)] = gpio_g5_irq1, // EINT21
+        [INT(42)] = gpio_g5_irq2, // EINT22
+        [INT(43)] = gpio_g5_irq3, // EINT23
         [INT(44)] = isu_g0_i2c_irq,
         [INT(45)] = isu_g0_spim_irq,
         [INT(46)] = NULL,
