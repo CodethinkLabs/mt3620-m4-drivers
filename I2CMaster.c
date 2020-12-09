@@ -264,7 +264,7 @@ int32_t I2CMaster_TransferSequentialAsync_UserData(
     }
 
     // It's up to the user to group transfers of the same type
-    if (count >= MT3620_I2C_QUEUE_DEPTH) {
+    if (count > MT3620_I2C_QUEUE_DEPTH) {
         return ERROR_UNSUPPORTED;
     }
 
