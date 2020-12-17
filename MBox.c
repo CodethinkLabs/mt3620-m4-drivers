@@ -38,26 +38,6 @@ static inline int32_t MBox__Get_Index(Platform_Unit unit)
 }
 
 
-static inline void MBox_FIFO__Reset(MBox *handle, bool both)
-{
-    if (!handle) {
-        return;
-    }
-    // Note that the MB on the partner core must also be reset
-    int32_t index = MBox__Get_Index(handle->unit);
-
-    if (index != -1) {
-        if (both) {
-            MT3620_MBOX_FIELD_WRITE(
-                index, mbox_gen_ctrl, soft_rst, 1);
-        }
-        else {
-            MT3620_MBOX_FIELD_WRITE(
-                index, mbox_gen_ctrl, soft_rst_myself, 1);
-        }
-    }
-}
-
 static void MBox_FIFO__Toggle_Interrupts(MBox *handle, bool enable)
 {
     if (!handle) {
@@ -129,7 +109,7 @@ MBox* MBox_FIFO_Open(
     }
 
     // TODO: determine if MB needs a reset on open
-    MBox_FIFO__Reset(handle, true);
+    MBox_FIFO_Reset(handle, true);
 
     handle->fifo_open = true;
     handle->unit      = unit;
@@ -169,7 +149,7 @@ void MBox_FIFO_Close(MBox *handle)
     }
 
     // TODO: is this required?
-    MBox_FIFO__Reset(handle, false);
+    MBox_FIFO_Reset(handle, false);
 
     handle->fifo_open = false;
 
@@ -181,6 +161,27 @@ void MBox_FIFO_Close(MBox *handle)
     handle->non_empty_threshold  = -1;
 
     MBox_FIFO__Toggle_Interrupts(handle, false);
+}
+
+
+void MBox_FIFO_Reset(MBox *handle, bool both)
+{
+    if (!handle) {
+        return;
+    }
+    // Note that the MB on the partner core must also be reset
+    int32_t index = MBox__Get_Index(handle->unit);
+
+    if (index != -1) {
+        if (both) {
+            MT3620_MBOX_FIELD_WRITE(
+                index, mbox_gen_ctrl, soft_rst, 1);
+        }
+        else {
+            MT3620_MBOX_FIELD_WRITE(
+                index, mbox_gen_ctrl, soft_rst_myself, 1);
+        }
+    }
 }
 
 
