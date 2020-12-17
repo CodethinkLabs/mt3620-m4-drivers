@@ -63,11 +63,17 @@ MBox* MBox_FIFO_Open(
     int8_t         non_empty_threshold);
 
 /// <summary>
-/// <para>Releases a mailbox handle. Resets ??? </para>
+/// <para>Releases a mailbox handle. Resets M4 MBox registers.</para>
 /// </summary>
 /// <param name="handle">The MBox handle which is to be released.</param>
 void MBox_FIFO_Close(MBox *handle);
 
+/// <summary>
+/// <para>Resets MBox either on just m4 side, or on both a7 and m4 sides</para>
+/// </summary>
+/// <param name="handle">The MBox handle which is to be released.</param>
+/// <param name="both">Whether to reset bidirectionally or not.</param>
+void MBox_FIFO_Reset(MBox *handle, bool both);
 
 /// <summary>
 /// <para>Write to Mbox FIFO. If configured, the interrupts to expect are
