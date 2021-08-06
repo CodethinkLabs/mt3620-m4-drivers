@@ -84,8 +84,8 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
 
     unsigned divs  = ((MT3620_UART_CLOCK * 10) + (baud / 2)) / baud;
 
-    unsigned dl;
-    for (dl = 1; divs > (256 * 10); dl++, divs >>= 1);
+    unsigned dl = (divs + 2559) / 2560;
+    divs /= dl;
 
     unsigned fract = mt3620_uart_fract_lut[divs % 10];
     unsigned count = (divs / 10);
