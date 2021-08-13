@@ -327,6 +327,11 @@ int32_t UART_Write(UART *handle, const void *data, uintptr_t size)
     return ERROR_NONE;
 }
 
+inline bool UART_IsWriteComplete(UART *handle)
+{
+    return MT3620_UART_FIELD_READ(handle->id, lsr, temt);
+}
+
 int32_t UART_Read(UART *handle, void *data, uintptr_t size)
 {
     if (!handle) {

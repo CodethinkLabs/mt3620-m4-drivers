@@ -7,6 +7,7 @@
 #include "Platform.h"
 #include "Common.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 
 #ifdef __cplusplus
@@ -70,6 +71,13 @@ void UART_Close(UART *handle);
 /// <param name="size">Size of the data in bytes.</param>
 /// <returns>ERROR_NONE on success, or an error code.</returns>
 int32_t UART_Write(UART *handle, const void *data, uintptr_t size);
+
+/// <summary>
+/// This function checks if the UART's hardware TX buffer is actually empty.
+/// </summary>
+/// <param name="handle">Which UART to read TX buffer status from.</param>
+/// <returns>'true' if the UART's hardware TX buffer is empty, 'false' otherwise.</returns>
+bool UART_IsWriteComplete(UART *handle);
 
 /// <summary>
 /// This function blocks until it has read size bytes from the UART.
