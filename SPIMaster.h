@@ -48,14 +48,14 @@ typedef struct {
 /// <para>Sets the subordinate device select channel.</para>
 /// </summary>
 /// <param name="handle">SPI handle to be configured.</param>
-/// <param name="csLine">Sets the hardware CS line to be used for subsequent transactions.
+/// <param name="csLine">Sets the CS line to be used for hardware chip-select functionality.
 /// Note: If the value is valid, then this function also enables the CS line.</param>
 /// <returns>Returns ERROR_NONE on success, or an error code on failure.</returns>
 int32_t SPIMaster_Select(SPIMaster *handle, unsigned csLine);
 
 /// <summary>
-/// <para>Allows user to disable / enable CS line, enabling resets the csLine to the value it
-/// had prior to disabling (if csCallback is not in use).</para>
+/// <para>Allows user to enable/disable hardware chip-select functionality, enabling
+//  resets the csLine to the value it had prior to disabling (if csCallback is not in use).</para>
 /// </summary>
 /// <param name="handle">SPI handle to be configured.</param>
 /// <param name="enable">Whether to enable the csLine</param>
@@ -63,7 +63,8 @@ int32_t SPIMaster_Select(SPIMaster *handle, unsigned csLine);
 int32_t SPIMaster_SelectEnable(SPIMaster *handle, bool enable);
 
 /// <summary>
-/// <para>Sets callback alternative to HW chip select; allowing for GPIO CS.</para>
+/// <para>Sets callback alternative to HW chip select; allowing for GPIO CS. This allows the user
+/// to work-around the limitations of hardware chip-select functionality.</para>
 /// </summary>
 /// <param name="handle">SPI handle to update.</param>
 /// <param name="selectLineCallback">Callback to associate with CS - called when transaction starts
