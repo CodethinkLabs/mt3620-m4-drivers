@@ -55,7 +55,7 @@ int32_t SPIMaster_Select(SPIMaster *handle, unsigned csLine);
 
 /// <summary>
 /// <para>Allows user to enable/disable hardware chip-select functionality, enabling
-//  resets the csLine to the value it had prior to disabling (if csCallback is not in use).</para>
+/// resets the csLine to the value it had prior to disabling (if csCallback is not in use).</para>
 /// </summary>
 /// <param name="handle">SPI handle to be configured.</param>
 /// <param name="enable">Whether to enable the csLine</param>
