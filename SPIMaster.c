@@ -7,12 +7,6 @@
 #include "mt3620/spi.h"
 #include "mt3620/dma.h"
 
-// We currently disable half-duplex write transfers as a bug in the hardware causes
-// the data to be bitshifted, we believe it's sending 1-bit of the opcode even in
-// half-duplex mode.
-// This define is left here to allow us to easily test for workarounds.
-#undef SPI_ALLOW_TRANSFER_WRITE
-
 // This is the maximum number of globbed transactions we allow to queue
 #define SPI_MASTER_TRANSFER_COUNT_MAX 16
 
@@ -48,7 +42,6 @@ struct SPIMaster {
 static SPIMaster spiContext[MT3620_SPI_COUNT] = { 0 };
 
 // TODO: Reduce sysram usage by providing a more limited set of buffers?
-// Each interface has two buffers for double buffering.
 static __attribute__((section(".sysram"))) mt3620_spi_dma_cfg_t SPIMaster_DmaConfig[MT3620_SPI_COUNT] = { 0 };
 
 #define SPI_PRIORITY 2
@@ -319,22 +312,20 @@ static int32_t SPIMaster_TransferGlobQueue(SPIMaster *handle, SPIMaster_Transfer
     mt3620_spi_dma_cfg_t *cfg = &SPIMaster_DmaConfig[handle->id];
 
     switch (glob->type) {
-#ifdef SPI_ALLOW_TRANSFER_WRITE
     case SPI_MASTER_TRANSFER_WRITE:
         cfg->smmr.both_directional_data_mode = false;
 
         cfg->smbcr.mosi_bit_cnt = (glob->payloadLen * 8);
         cfg->smbcr.miso_bit_cnt = 0;
-        cfg->smbcr.cmd_bit_cnt  = 0;
+        cfg->smbcr.cmd_bit_cnt  = (glob->opcodeLen  * 8);
         break;
-#endif
 
     case SPI_MASTER_TRANSFER_READ:
         cfg->smmr.both_directional_data_mode = false;
 
         cfg->smbcr.mosi_bit_cnt = 0;
         cfg->smbcr.miso_bit_cnt = (glob->payloadLen * 8);
-        cfg->smbcr.cmd_bit_cnt  = 0;
+        cfg->smbcr.cmd_bit_cnt  = (glob->opcodeLen  * 8);
         break;
 
     case SPI_MASTER_TRANSFER_FULL_DUPLEX:
@@ -350,10 +341,10 @@ static int32_t SPIMaster_TransferGlobQueue(SPIMaster *handle, SPIMaster_Transfer
         return ERROR;
     }
 
-    unsigned p = 0;
+    unsigned o = 0;
     unsigned t = 0;
     if (glob->opcodeLen >= 0) {
-        const SPITransfer *transfer = &glob->transfer[t++];
+        const SPITransfer *transfer = &glob->transfer[t];
 
         // Reverse byte order of opcode as SPI is big-endian.
         uint32_t mask = 0xFFFFFFFF;
@@ -365,23 +356,33 @@ static int32_t SPIMaster_TransferGlobQueue(SPIMaster *handle, SPIMaster_Transfer
         }
         cfg->soar.mask = mask;
 
-        p += (transfer->length - glob->opcodeLen);
-        __builtin_memcpy(cfg->sdor, &writeData[glob->opcodeLen], p);
+        if (glob->opcodeLen >= transfer->length) {
+            t++;
+        } else {
+            o += glob->opcodeLen;
+        }
     }
 
+    unsigned p = 0;
     uint8_t *sdor = (uint8_t *)cfg->sdor;
     for (; t < glob->transferCount; t++) {
         const SPITransfer *transfer = &glob->transfer[t];
 
         if (transfer->writeData) {
-            __builtin_memcpy(&sdor[p], transfer->writeData, transfer->length);
-        } else {
-            __builtin_memset(&sdor[p], 0xFF, transfer->length);
+            const uint8_t *writeData = transfer->writeData;
+            __builtin_memcpy(&sdor[p], &writeData[o], (transfer->length - o));
+        } else if (glob->type == SPI_MASTER_TRANSFER_FULL_DUPLEX) {
+            __builtin_memset(&sdor[p], 0xFF, (transfer->length - o));
         }
-        p += transfer->length;
+
+        p += (transfer->length - o);
+        o  = 0;
     }
-    // This workaround is required to make the MOSI line idle high due to SPI bug.
-    sdor[p] = 0xFF;
+
+    if (p < MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX) {
+        // This workaround is required to make the MOSI line idle high due to SPI bug.
+        sdor[p] = 0xFF;
+    }
 
     if (handle->dma) {
         unsigned index = MT3620_SPI_DMA_TX(handle->id);
@@ -433,20 +434,26 @@ static int32_t SPIMaster_TransferSequentialAsyncGlob(
 
 static int32_t SPIMaster_TransferGlobNew(const SPITransfer *transfer, SPIMaster_TransferGlob *glob)
 {
+    if ((!transfer->writeData && !transfer->readData)
+        || (transfer->length == 0)) {
+        return ERROR_PARAMETER;
+    }
+
+    // MT3620 doesn't support full-duplex without write preamble.
     if (transfer->writeData && transfer->readData) {
         return ERROR_UNSUPPORTED;
     }
 
     if (transfer->writeData) {
         if (transfer->length > (
-            MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX + MT3620_SPI_OPCODE_SIZE_FULL_DUPLEX)) {
+            MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX + MT3620_SPI_OPCODE_SIZE)) {
             return ERROR_UNSUPPORTED;
-        } else {
-            glob->type       = SPI_MASTER_TRANSFER_FULL_DUPLEX;
-            glob->opcodeLen  = (transfer->length > MT3620_SPI_OPCODE_SIZE_FULL_DUPLEX
-                ? MT3620_SPI_OPCODE_SIZE_FULL_DUPLEX : transfer->length);
-            glob->payloadLen = (transfer->length - glob->opcodeLen);
         }
+
+        glob->type = SPI_MASTER_TRANSFER_WRITE;
+        glob->opcodeLen = (transfer->length > MT3620_SPI_OPCODE_SIZE
+            ? MT3620_SPI_OPCODE_SIZE : transfer->length);
+        glob->payloadLen = (transfer->length - glob->opcodeLen);
     } else {
         if (transfer->length > MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX) {
             return ERROR_UNSUPPORTED;
@@ -467,70 +474,60 @@ static bool SPIMaster_TransferGlobAppend(
     uint32_t                count,
     SPIMaster_TransferGlob *glob)
 {
-    // If next transfer is a write but the one after involves a read, we don't glob it
-    // as we need to glob a read onto a write due to hardware limitations.
-    if (transfer[0].writeData && !transfer[0].readData && (count >= 2)) {
-        if (transfer[1].writeData && transfer[1].readData) {
+    if ((count == 0)
+        || (!transfer[0].writeData && !transfer[0].readData)
+        || (transfer[0].length == 0)) {
+        return ERROR_PARAMETER;
+    }
+
+    // If next transfer is a write but the one after is full-duplex, we don't glob it
+    // as we need to glob a full-duplex onto a write due to hardware limitations.
+    if (transfer[0].writeData && !transfer[0].readData && (count >= 2)
+        && transfer[1].writeData && transfer[1].readData) {
+        return false;
+    }
+
+    if (glob->type == SPI_MASTER_TRANSFER_READ) {
+        // We can't append a write/full-duplex to a half-duplex read.
+        if (transfer[0].writeData) {
             return false;
         }
-    }
 
-    // We can't append a write/duplex to a half-duplex read.
-    if ((glob->type == SPI_MASTER_TRANSFER_READ) && transfer->writeData) {
-        return false;
-    }
+        if ((glob->payloadLen + transfer[0].length)
+            > MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX) {
+            return false;
+        }
+    } else if (glob->type == SPI_MASTER_TRANSFER_WRITE) {
+        if (transfer[0].writeData && !transfer[0].readData) {
+            // Can't glob writes if payload would exceed length limit.
+            if ((glob->payloadLen + transfer[0].length)
+                > MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX) {
+                return false;
+            }
+        } else if (transfer[0].readData && !transfer[0].writeData) {
+            if (glob->payloadLen == 0) {
+                if (transfer[0].length > MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX) {
+                    return false;
+                }
 
-#ifdef SPI_ALLOW_TRANSFER_WRITE
-    // We can't append a read/duplex to a half-duplex write.
-    if ((glob->type == SPI_MASTER_TRANSFER_WRITE) && transfer->readData) {
-        return false;
-    }
-#endif // #ifdef SPI_ALLOW_TRANSFER_WRITE
-
-    unsigned payloadLimit;
-    switch (glob->type) {
-    case SPI_MASTER_TRANSFER_FULL_DUPLEX:
-        payloadLimit = MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX;
-        break;
-
-    case SPI_MASTER_TRANSFER_READ:
-        payloadLimit = MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX;
-        break;
-
-    case SPI_MASTER_TRANSFER_WRITE:
-        // We must reserve the last byte to set the MOSI idle level high.
-        // This is due to a bug in the MT3620 SPI interface.
-        payloadLimit = MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX - 1;
-        break;
-
-    default:
-        return false;
-    }
-
-    if ((glob->payloadLen + transfer->length) > payloadLimit) {
-#ifdef SPI_ALLOW_TRANSFER_WRITE
-        if ((glob->type == SPI_MASTER_TRANSFER_FULL_DUPLEX) && !transfer->readData) {
-            // Check if this transfer would overflow half-duplex glob.
-            if ((glob->payloadLen + glob->opcodeLen + transfer->length) > (
-                MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX - 1)) {
+                glob->type = SPI_MASTER_TRANSFER_READ;
+            } else if ((glob->payloadLen + transfer[0].length)
+                <= MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX) {
+                glob->type = SPI_MASTER_TRANSFER_FULL_DUPLEX;
+            } else {
+                return false;
+            }
+        } else {
+            if ((glob->payloadLen + transfer[0].length)
+                > MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX) {
                 return false;
             }
 
-            // Check if full-duplex glob contains reads.
-            unsigned t;
-            for (t = 0; t < glob->transferCount; t++) {
-                if (glob->transfer[t].readData) {
-                    return false;
-                }
-            }
-
-            // If a full-duplex glob only contains writes, make it a write glob.
-            glob->type = SPI_MASTER_TRANSFER_WRITE;
-            glob->payloadLen += glob->opcodeLen;
-            glob->opcodeLen = 0;
-        } else
-#endif //#ifdef SPI_ALLOW_TRANSFER_WRITE
-        {
+            glob->type = SPI_MASTER_TRANSFER_FULL_DUPLEX;
+        }
+    } else {
+        if ((glob->payloadLen + transfer[0].length)
+            > MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX) {
             return false;
         }
     }
@@ -538,27 +535,6 @@ static bool SPIMaster_TransferGlobAppend(
     glob->transferCount++;
     glob->payloadLen += transfer->length;
     return true;
-}
-
-static void SPIMaster_TransferGlobFinalize(SPIMaster_TransferGlob *glob)
-{
-#ifdef SPI_ALLOW_TRANSFER_WRITE
-    if (glob->type != SPI_MASTER_TRANSFER_FULL_DUPLEX) {
-        return;
-    }
-
-    unsigned i;
-    for (i = 0; i < glob->transferCount; i++) {
-        if (glob->transfer[i].readData) {
-            return;
-        }
-    }
-
-    // If a full duplex glob only contains writes, make it a write glob.
-    glob->type = SPI_MASTER_TRANSFER_WRITE;
-    glob->payloadLen += glob->opcodeLen;
-    glob->opcodeLen = 0;
-#endif // #ifdef SPI_ALLOW_TRANSFER_WRITE
 }
 
 static int32_t SPIMaster_TransferSequentialAsync_Wrapper(
@@ -589,8 +565,6 @@ static int32_t SPIMaster_TransferSequentialAsync_Wrapper(
 
     for (; t < count; t++) {
         if (!SPIMaster_TransferGlobAppend(&transfer[t], (count - t), &glob[g])) {
-            SPIMaster_TransferGlobFinalize(&glob[g]);
-
             if (++g >= SPI_MASTER_TRANSFER_COUNT_MAX) {
                 return ERROR_UNSUPPORTED;
             }
@@ -601,7 +575,6 @@ static int32_t SPIMaster_TransferSequentialAsync_Wrapper(
             }
         }
     }
-    SPIMaster_TransferGlobFinalize(&glob[g]);
 
     handle->globCount = (g + 1);
     return SPIMaster_TransferSequentialAsyncGlob(handle, handle->glob,
@@ -750,18 +723,14 @@ static void SPIMaster_IRQ(Platform_Unit unit)
                 const SPITransfer *transfer = &glob->transfer[t];
 
                 if (transfer->readData) {
-                    unsigned sdirOffset = 0;
-                    if (glob->type == SPI_MASTER_TRANSFER_FULL_DUPLEX) {
-                        sdirOffset = 4;
-                    }
-
-                    // Read data out of SDIR.
-                    uint8_t *src = (uint8_t*)&mt3620_spi[handle->id]->sdir[sdirOffset];
-                    __builtin_memcpy(transfer->readData, &src[offset], transfer->length);
+                    uint8_t *sdir = (uint8_t*)mt3620_spi[handle->id]->sdir;
+                    __builtin_memcpy(transfer->readData, &sdir[offset], transfer->length);
                 }
 
                 offset += transfer->length;
-                if (t == 0) offset -= glob->opcodeLen;
+                if (t == 0) {
+                    offset -= glob->opcodeLen;
+                }
             }
         }
 

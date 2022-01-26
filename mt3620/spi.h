@@ -111,10 +111,9 @@ typedef struct {
     volatile const uint32_t sdir[8];
 } mt3620_spi_t;
 
-// Datasheet claims that half-duplex supports 32-byte read/write but it doesn't.
-#define MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX 16
+#define MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX 32
 #define MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX 16
-#define MT3620_SPI_OPCODE_SIZE_FULL_DUPLEX 4
+#define MT3620_SPI_OPCODE_SIZE              4
 
 #define MT3620_SPI_INTERRUPT(x) (45 + ((x) * 4))
 
