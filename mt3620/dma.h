@@ -143,7 +143,7 @@ typedef struct {
 typedef struct {
     volatile const uint32_t glbsta0;
     volatile const uint32_t glbsta1;
-    volatile const uint32_t res_2;
+    volatile uint32_t       ch_rst;
     volatile uint32_t       glo_con;
     volatile uint32_t       group0;
     volatile uint32_t       group1;
@@ -155,6 +155,10 @@ typedef struct {
     volatile const uint32_t res_11;
     volatile uint32_t       glb_pause;
     volatile const uint32_t glb_sta_pause;
+    volatile const uint32_t res_14_19[6];
+    volatile uint32_t       set_dreq;
+    volatile const uint32_t res_21;
+    volatile uint32_t       clr_dreq;
 } mt3620_dma_global_t;
 
 #define MT3620_DMA_COUNT 30
