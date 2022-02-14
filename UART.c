@@ -7,7 +7,7 @@
 #include "NVIC.h"
 #include <stddef.h>
 #include <stdbool.h>
-
+#include <string.h>
 
 // Disable DMA as it doesn't currently work
 #undef UART_ALLOW_DMA
@@ -160,7 +160,7 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
         dma_con_tx.dir  = 0;
         dma_con_tx.iten = false;
         dma_con_tx.toen = false;
-        dma_con_tx.dreq = false;//true;
+        dma_con_tx.dreq = true;
         dma_con_tx.size = 0;
         tx_dma->con = dma_con_tx.mask;
 
@@ -187,7 +187,7 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
 
         mt3620_uart_extend_add_t extend_add = { .mask = mt3620_uart[id]->extend_add };
         extend_add.rx_dma_hsk_en = true;
-        extend_add.tx_dma_hsk_en = true;
+        extend_add.tx_dma_hsk_en = false;
         extend_add.tx_auto_trans = true;
         mt3620_uart[id]->extend_add = extend_add.mask;
     }
@@ -257,27 +257,24 @@ int32_t UART_Write(UART *handle, const void *data, uintptr_t size)
     if (handle->dma) {
         volatile mt3620_dma_t * const tx_dma = &mt3620_dma[MT3620_UART_DMA_TX(handle->id)];
         while (size > 0) {
-            // We can't send any bytes until TX fifo is not full.
-            while (MT3620_DMA_FIELD_READ(MT3620_UART_DMA_TX(handle->id), ffsta, full));
+            // Don't stop dma channel until TX fifo is empty.
+            while (!MT3620_DMA_FIELD_READ(MT3620_UART_DMA_TX(handle->id), ffsta, empty));
 
             MT3620_DMA_FIELD_WRITE(MT3620_UART_DMA_TX(handle->id), start, str, false);
 
-            uintptr_t remain = (tx_dma->ffsize - tx_dma->ffcnt);
-            uintptr_t chunk = (remain >= size ? size : remain);
+            uintptr_t chunk = (size > TX_BUFFER_SIZE ? TX_BUFFER_SIZE : size);
 
-            uintptr_t i;
-            for (i = 0; i < chunk; i++) {
-                UART_BuffTX[handle->id][tx_dma->swptr++] = ((const uint8_t *)data)[i];
-#if (TX_BUFFER_SIZE < 65536)
-                // When the buffer isn't exactly 16-bits we need to handle the wrap bit.
-                if ((tx_dma->swptr & 0xFFFF) > TX_BUFFER_SIZE) {
-                    tx_dma->swptr &= 0xFFFF0000;
-                    tx_dma->swptr ^= 0x00010000;
-                }
-#endif
-            }
+            memcpy(UART_BuffTX[handle->id], data, chunk);
+            tx_dma->swptr = (chunk == TX_BUFFER_SIZE ? 0x00010000 : chunk);
+
+            MT3620_UART_FIELD_WRITE(handle->id, extend_add, tx_dma_hsk_en, false);
+
+            mt3620_dma_global->clr_dreq = 0;
+            mt3620_dma_global->clr_dreq = (1U << MT3620_UART_DMA_TX(handle->id));
+            mt3620_dma_global->clr_dreq = 0;
 
             MT3620_DMA_FIELD_WRITE(MT3620_UART_DMA_TX(handle->id), start, str, true);
+            MT3620_UART_FIELD_WRITE(handle->id, extend_add, tx_dma_hsk_en, true);
 
             data = (const void *)((uintptr_t)data + chunk);
             size -= chunk;
