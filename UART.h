@@ -15,7 +15,7 @@
 #endif
 
 /// <summary>Opaque UART handle.</summary>
-typedef struct UART UART;
+typedef volatile struct UART UART;
 
 /// <summary>UART parity modes.</summary>
 typedef enum {
