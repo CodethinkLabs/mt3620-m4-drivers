@@ -352,18 +352,15 @@ int32_t UART_Read(UART *handle, void *data, uintptr_t size)
             uintptr_t avail = rx_dma->ffcnt;
             uintptr_t chunk = (avail >= size ? size : avail);
 
-            uintptr_t i;
-            for (i = 0; i < chunk; i++) {
-                ((uint8_t *)data)[i] = UART_BuffRX[handle->id][rx_dma->swptr & 0xFFFF];
-                rx_dma->swptr++;
-#if (RX_BUFFER_SIZE < 65536)
-                // When the buffer isn't exactly 16-bits we need to handle the wrap bit.
-                if ((rx_dma->swptr & 0xFFFF) >= RX_BUFFER_SIZE) {
-                    rx_dma->swptr &= 0xFFFF0000;
-                    rx_dma->swptr ^= 0x00010000;
+            uint32_t swptr = rx_dma->swptr;
+            for (uintptr_t i = 0; i < chunk; i++) {
+                ((uint8_t *)data)[i] = UART_BuffRX[handle->id][swptr++ & 0xFFFF];
+                if ((swptr & 0xFFFF) >= RX_BUFFER_SIZE) {
+                    swptr &= 0xFFFF0000;
+                    swptr ^= 0x00010000;
                 }
-#endif
             }
+            rx_dma->swptr = swptr;
 
             data = (void *)((uintptr_t)data + chunk);
             size -= chunk;
