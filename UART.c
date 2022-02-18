@@ -349,24 +349,21 @@ int32_t UART_Read(UART *handle, void *data, uintptr_t size)
             // We can't receive any bytes while RX fifo is empty.
             while (MT3620_DMA_FIELD_READ(MT3620_UART_DMA_RX(handle->id), ffsta, empty));
 
-            MT3620_DMA_FIELD_WRITE(MT3620_UART_DMA_RX(handle->id), start, str, false);
-
             uintptr_t avail = rx_dma->ffcnt;
             uintptr_t chunk = (avail >= size ? size : avail);
 
             uintptr_t i;
             for (i = 0; i < chunk; i++) {
-                ((uint8_t *)data)[i] = UART_BuffRX[handle->id][rx_dma->swptr++];
+                ((uint8_t *)data)[i] = UART_BuffRX[handle->id][rx_dma->swptr & 0xFFFF];
+                rx_dma->swptr++;
 #if (RX_BUFFER_SIZE < 65536)
                 // When the buffer isn't exactly 16-bits we need to handle the wrap bit.
-                if ((rx_dma->swptr & 0xFFFF) > RX_BUFFER_SIZE) {
+                if ((rx_dma->swptr & 0xFFFF) >= RX_BUFFER_SIZE) {
                     rx_dma->swptr &= 0xFFFF0000;
                     rx_dma->swptr ^= 0x00010000;
                 }
 #endif
             }
-
-            MT3620_DMA_FIELD_WRITE(MT3620_UART_DMA_RX(handle->id), start, str, true);
 
             data = (void *)((uintptr_t)data + chunk);
             size -= chunk;
@@ -461,6 +458,8 @@ static void UART_HandleIRQ(Platform_Unit unit)
             if (handle->rxCallback) {
                 handle->rxCallback();
             }
+
+            mt3620_uart[handle->id]->vfifo_en; // reading this acknowledges timeout interrupt
             break;
 
         default:
