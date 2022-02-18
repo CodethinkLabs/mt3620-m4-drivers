@@ -35,8 +35,8 @@
 
 
 // TODO: Reduce sysram usage by providing a more limited set of buffers?
-static __attribute__((section(".sysram"))) uint8_t UART_BuffRX[MT3620_UART_COUNT][RX_BUFFER_SIZE] = { 0 };
-static __attribute__((section(".sysram"))) uint8_t UART_BuffTX[MT3620_UART_COUNT][TX_BUFFER_SIZE] = { 0 };
+static __attribute__((section(".sysram"))) volatile uint8_t UART_BuffRX[MT3620_UART_COUNT][RX_BUFFER_SIZE] = { 0 };
+static __attribute__((section(".sysram"))) volatile uint8_t UART_BuffTX[MT3620_UART_COUNT][TX_BUFFER_SIZE] = { 0 };
 
 struct UART {
     bool     open;
