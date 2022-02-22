@@ -531,14 +531,24 @@ static bool SPIMaster_TransferGlobAppend(
     uint8_t idleByte = (handle->idleLevel == SPI_IDLE_LEVEL_DONT_CARE ? 0 : 1);
 
     if (glob->type == SPI_MASTER_TRANSFER_READ) {
-        // We can't append a write/full-duplex to a half-duplex read.
         if (transfer[0].writeData) {
-            return false;
-        }
+            if (glob->opcodeLen == 0) {
+                // We can't append a write/full-duplex to a half-duplex read.
+                return false;
+            }
 
-        if ((glob->payloadLen + transfer[0].length)
-            > MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX) {
-            return false;
+            if ((glob->payloadLen + transfer[0].length)
+                > (MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX - idleByte))
+            {
+                return false;
+            }
+
+            glob->type = SPI_MASTER_TRANSFER_FULL_DUPLEX;
+        } else {
+            if ((glob->payloadLen + transfer[0].length)
+                > MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX) {
+                return false;
+            }
         }
     } else if (glob->type == SPI_MASTER_TRANSFER_WRITE) {
         if (transfer[0].writeData && !transfer[0].readData) {
