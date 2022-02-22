@@ -44,6 +44,24 @@ typedef struct {
     uintptr_t length;
 } SPITransfer;
 
+/// <summary>Enum for SPI idle line level.</summary>
+typedef enum {
+    /// <summary>The MOSI line will idle low</summary>
+    SPI_IDLE_LEVEL_LOW = 0,
+    /// <summary>The MOSI line will idle high</summary>
+	SPI_IDLE_LEVEL_HIGH = 1,
+    /// <summary>The MOSI line will idle at any level, may be faster on some hardware.</summary>
+    SPI_IDLE_LEVEL_DONT_CARE,
+} SPI_IdleLevel;
+
+/// <summary>
+/// <para>Sets the idle line level of MOSI line.</para>
+/// </summary>
+/// <param name="handle">SPI handle to be configured.</param>
+/// <param name="level">Sets the level to be used when MOSI idle.</param>
+/// <returns>Returns ERROR_NONE on success, or an error code on failure.</returns>
+int32_t SPIMaster_SelectIdleLineLevel(SPIMaster *handle, SPI_IdleLevel level);
+
 /// <summary>
 /// <para>Sets the subordinate device select channel.</para>
 /// </summary>

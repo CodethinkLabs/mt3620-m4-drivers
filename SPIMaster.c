@@ -28,6 +28,7 @@ struct SPIMaster {
     uint32_t                id;
     bool                    open;
     bool                    dma;
+    SPI_IdleLevel           idleLevel;
     uint32_t                csLine;
     void                    (*csCallback)(SPIMaster*, bool);
     bool                    csEnable;
@@ -45,6 +46,32 @@ static SPIMaster spiContext[MT3620_SPI_COUNT] = { 0 };
 static __attribute__((section(".sysram"))) mt3620_spi_dma_cfg_t SPIMaster_DmaConfig[MT3620_SPI_COUNT] = { 0 };
 
 #define SPI_PRIORITY 2
+
+int32_t SPIMaster_SelectIdleLineLevel(SPIMaster *handle, SPI_IdleLevel level)
+{
+    if (!handle) {
+        return ERROR_PARAMETER;
+    }
+    if (!handle->open) {
+        return ERROR_HANDLE_CLOSED;
+    }
+
+    switch (level) {
+    case SPI_IDLE_LEVEL_LOW:
+    case SPI_IDLE_LEVEL_HIGH:
+    case SPI_IDLE_LEVEL_DONT_CARE:
+        break;
+    default:
+        return ERROR_UNSUPPORTED;
+    }
+
+    if (handle->globCount > handle->globTransferred) {
+        return ERROR_BUSY;
+    }
+
+    handle->idleLevel = level;
+    return ERROR_NONE;
+}
 
 int32_t SPIMaster_Select(SPIMaster *handle, unsigned csLine)
 {
@@ -214,6 +241,7 @@ SPIMaster *SPIMaster_Open(Platform_Unit unit)
     spiContext[id].id                 = id;
     spiContext[id].open               = true;
     spiContext[id].dma                = true;
+    spiContext[id].idleLevel          = SPI_IDLE_LEVEL_HIGH;
     spiContext[id].csLine             = MT3620_CS_NULL;
     spiContext[id].csCallback         = NULL;
     spiContext[id].csEnable           = false;
@@ -263,13 +291,18 @@ SPIMaster *SPIMaster_Open(Platform_Unit unit)
     // Enable DMA mode.
     MT3620_SPI_FIELD_WRITE(id, cspol, dma_mode, true);
 
-    // We have to set all buffers to 0xFF to ensure the line idles high.
+    // We have to set all buffers to know the the MOSI line idle level.
     // This is due to a hardware bug in the SPI adapter on the MT3620.
-    unsigned i;
-    for (i = 0; i < (MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX / 4); i++) {
-        mt3620_spi[id]->sdor[i] = 0xFFFFFFFF;
+    if (spiContext[id].idleLevel != SPI_IDLE_LEVEL_DONT_CARE) {
+        uint32_t fill = (spiContext[id].idleLevel == SPI_IDLE_LEVEL_LOW
+            ? 0x00000000 : 0xFFFFFFFF);
+
+        unsigned i;
+        for (i = 0; i < (MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX / 4); i++) {
+            mt3620_spi[id]->sdor[i] = fill;
+        }
+        mt3620_spi[id]->soar = fill;
     }
-    mt3620_spi[id]->soar = 0xFFFFFFFF;
 
     MT3620_SPI_FIELD_WRITE(id, stcsr, spi_master_start, false);
 
@@ -372,16 +405,18 @@ static int32_t SPIMaster_TransferGlobQueue(SPIMaster *handle, SPIMaster_Transfer
             const uint8_t *writeData = transfer->writeData;
             __builtin_memcpy(&sdor[p], &writeData[o], (transfer->length - o));
         } else if (glob->type == SPI_MASTER_TRANSFER_FULL_DUPLEX) {
-            __builtin_memset(&sdor[p], 0xFF, (transfer->length - o));
+            uint8_t idleLevel = (handle->idleLevel == SPI_IDLE_LEVEL_LOW ? 0x00 : 0xFF);
+            __builtin_memset(&sdor[p], idleLevel, (transfer->length - o));
         }
 
         p += (transfer->length - o);
         o  = 0;
     }
 
-    if (p < MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX) {
-        // This workaround is required to make the MOSI line idle high due to SPI bug.
-        sdor[p] = 0xFF;
+    // This workaround is required to make the MOSI line idle at known level due to SPI bug.
+    if (handle->idleLevel != SPI_IDLE_LEVEL_DONT_CARE) {
+        sdor[p % MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX] =
+            (handle->idleLevel == SPI_IDLE_LEVEL_LOW ? 0x00 : 0xFF);
     }
 
     if (handle->dma) {
@@ -432,7 +467,10 @@ static int32_t SPIMaster_TransferSequentialAsyncGlob(
     return status;
 }
 
-static int32_t SPIMaster_TransferGlobNew(const SPITransfer *transfer, SPIMaster_TransferGlob *glob)
+static int32_t SPIMaster_TransferGlobNew(
+        SPIMaster              *handle,
+        const SPITransfer      *transfer,
+        SPIMaster_TransferGlob *glob)
 {
     if ((!transfer->writeData && !transfer->readData)
         || (transfer->length == 0)) {
@@ -444,9 +482,11 @@ static int32_t SPIMaster_TransferGlobNew(const SPITransfer *transfer, SPIMaster_
         return ERROR_UNSUPPORTED;
     }
 
+    uint8_t idleByte = (handle->idleLevel == SPI_IDLE_LEVEL_DONT_CARE ? 0 : 1);
+
     if (transfer->writeData) {
         if (transfer->length > (
-            MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX + MT3620_SPI_OPCODE_SIZE)) {
+            MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX - idleByte + MT3620_SPI_OPCODE_SIZE)) {
             return ERROR_UNSUPPORTED;
         }
 
@@ -470,6 +510,7 @@ static int32_t SPIMaster_TransferGlobNew(const SPITransfer *transfer, SPIMaster_
 }
 
 static bool SPIMaster_TransferGlobAppend(
+    SPIMaster              *handle,
     const SPITransfer      *transfer,
     uint32_t                count,
     SPIMaster_TransferGlob *glob)
@@ -487,6 +528,8 @@ static bool SPIMaster_TransferGlobAppend(
         return false;
     }
 
+    uint8_t idleByte = (handle->idleLevel == SPI_IDLE_LEVEL_DONT_CARE ? 0 : 1);
+
     if (glob->type == SPI_MASTER_TRANSFER_READ) {
         // We can't append a write/full-duplex to a half-duplex read.
         if (transfer[0].writeData) {
@@ -501,7 +544,7 @@ static bool SPIMaster_TransferGlobAppend(
         if (transfer[0].writeData && !transfer[0].readData) {
             // Can't glob writes if payload would exceed length limit.
             if ((glob->payloadLen + transfer[0].length)
-                > MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX) {
+                > (MT3620_SPI_BUFFER_SIZE_HALF_DUPLEX - idleByte)) {
                 return false;
             }
         } else if (transfer[0].readData && !transfer[0].writeData) {
@@ -512,14 +555,14 @@ static bool SPIMaster_TransferGlobAppend(
 
                 glob->type = SPI_MASTER_TRANSFER_READ;
             } else if ((glob->payloadLen + transfer[0].length)
-                <= MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX) {
+                <= (MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX - idleByte)) {
                 glob->type = SPI_MASTER_TRANSFER_FULL_DUPLEX;
             } else {
                 return false;
             }
         } else {
             if ((glob->payloadLen + transfer[0].length)
-                > MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX) {
+                > (MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX - idleByte)) {
                 return false;
             }
 
@@ -527,7 +570,7 @@ static bool SPIMaster_TransferGlobAppend(
         }
     } else {
         if ((glob->payloadLen + transfer[0].length)
-            > MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX) {
+            > (MT3620_SPI_BUFFER_SIZE_FULL_DUPLEX - idleByte)) {
             return false;
         }
     }
@@ -558,18 +601,18 @@ static int32_t SPIMaster_TransferSequentialAsync_Wrapper(
 
     unsigned t = 0, g = 0;
     int32_t status;
-    status = SPIMaster_TransferGlobNew(&transfer[t++], &glob[g]);
+    status = SPIMaster_TransferGlobNew(handle, &transfer[t++], &glob[g]);
     if (status != ERROR_NONE) {
         return status;
     }
 
     for (; t < count; t++) {
-        if (!SPIMaster_TransferGlobAppend(&transfer[t], (count - t), &glob[g])) {
+        if (!SPIMaster_TransferGlobAppend(handle, &transfer[t], (count - t), &glob[g])) {
             if (++g >= SPI_MASTER_TRANSFER_COUNT_MAX) {
                 return ERROR_UNSUPPORTED;
             }
 
-            status = SPIMaster_TransferGlobNew(&transfer[t], &glob[g]);
+            status = SPIMaster_TransferGlobNew(handle, &transfer[t], &glob[g]);
             if (status != ERROR_NONE) {
                 return status;
             }
