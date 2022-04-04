@@ -112,6 +112,12 @@ void __attribute__((weak, alias("DefaultExceptionHandler"))) gpio_g5_cnt_irq(voi
 void __attribute__((weak, alias("DefaultExceptionHandler"))) iom4_CDBGPWRUPREQ(void);
 void __attribute__((weak, alias("DefaultExceptionHandler"))) iom4_CDBGPWRUPACK(void);
 
+void __attribute__((weak, alias("DefaultExceptionHandler"))) m4dma_irq_b_uart0_rx(void);
+void __attribute__((weak, alias("DefaultExceptionHandler"))) m4dma_irq_b_uart1_rx(void);
+void __attribute__((weak, alias("DefaultExceptionHandler"))) m4dma_irq_b_uart2_rx(void);
+void __attribute__((weak, alias("DefaultExceptionHandler"))) m4dma_irq_b_uart3_rx(void);
+void __attribute__((weak, alias("DefaultExceptionHandler"))) m4dma_irq_b_uart4_rx(void);
+void __attribute__((weak, alias("DefaultExceptionHandler"))) m4dma_irq_b_uart5_rx(void);
 void __attribute__((weak, alias("DefaultExceptionHandler"))) m4dma_irq_b_adc(void);
 void __attribute__((weak, alias("DefaultExceptionHandler"))) m4dma_irq_b_i2s0_tx(void);
 void __attribute__((weak, alias("DefaultExceptionHandler"))) m4dma_irq_b_i2s0_rx(void);
@@ -122,6 +128,12 @@ void __attribute__((weak, alias("DefaultExceptionHandler"))) m4dma_irq_b_i2s1_rx
 static void m4dma_irq_b(void)
 {
     static void (*m4dma_irq_b_isr[MT3620_DMA_COUNT])(void) = {
+        [14] = m4dma_irq_b_uart0_rx,
+        [16] = m4dma_irq_b_uart1_rx,
+        [18] = m4dma_irq_b_uart2_rx,
+        [20] = m4dma_irq_b_uart3_rx,
+        [22] = m4dma_irq_b_uart4_rx,
+        [24] = m4dma_irq_b_uart5_rx,
         [25] = m4dma_irq_b_i2s0_tx,
         [26] = m4dma_irq_b_i2s0_rx,
         [27] = m4dma_irq_b_i2s1_tx,
