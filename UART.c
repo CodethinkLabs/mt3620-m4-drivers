@@ -173,11 +173,11 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
         rx_dma->fixaddr = (void *)&mt3620_uart[id]->thr;
         rx_dma->pgmaddr = (void *)UART_BuffRX[id];
         rx_dma->ffsize  = RX_BUFFER_SIZE;
-        rx_dma->count = 0;
+        rx_dma->count = RX_BUFFER_SIZE;
 
         mt3620_dma_con_t dma_con_rx = { .mask = rx_dma->con };
         dma_con_rx.dir  = 1;
-        dma_con_rx.iten = false;
+        dma_con_rx.iten = true;
         dma_con_rx.toen = false;
         dma_con_rx.dreq = true;
         dma_con_rx.size = 0;
@@ -452,7 +452,7 @@ static void UART_HandleIRQ(Platform_Unit unit)
                 }
             }
 
-            if (handle->rxCallback) {
+            if (handle->rxCallback && UART_ReadAvailable(handle) > 0) {
                 handle->rxCallback();
             }
 
@@ -466,6 +466,32 @@ static void UART_HandleIRQ(Platform_Unit unit)
     } while (iirId != MT3620_UART_IIR_ID_NO_INTERRUPT_PENDING);
 }
 
+static void UART_RX_DMA_HandleIRQ(Platform_Unit unit)
+{
+    if(unit == MT3620_UNIT_UART_DEBUG) {
+        return;
+    }
+
+    unsigned id = UART_UnitToID(unit);
+    if (id >= MT3620_UART_COUNT) {
+        return;
+    }
+
+    UART *handle = &context[id];
+    if (!handle->open) {
+        return;
+    }
+
+    if(MT3620_DMA_FIELD_READ(MT3620_UART_DMA_RX(handle->id), intsta, _int)) {
+        if (handle->rxCallback && UART_ReadAvailable(handle) > 0) {
+            handle->rxCallback();
+        }
+
+        MT3620_DMA_FIELD_WRITE(MT3620_UART_DMA_RX(handle->id), ackint, ack, 1);
+    }
+
+}
+
 void uart_irq_b(void)        { UART_HandleIRQ(MT3620_UNIT_UART_DEBUG); }
 void isu_g0_uart_irq_b(void) { UART_HandleIRQ(MT3620_UNIT_ISU0      ); }
 void isu_g1_uart_irq_b(void) { UART_HandleIRQ(MT3620_UNIT_ISU1      ); }
@@ -473,3 +499,9 @@ void isu_g2_uart_irq_b(void) { UART_HandleIRQ(MT3620_UNIT_ISU2      ); }
 void isu_g3_uart_irq_b(void) { UART_HandleIRQ(MT3620_UNIT_ISU3      ); }
 void isu_g4_uart_irq_b(void) { UART_HandleIRQ(MT3620_UNIT_ISU4      ); }
 void isu_g5_uart_irq_b(void) { UART_HandleIRQ(MT3620_UNIT_ISU5      ); }
+void m4dma_irq_b_uart0_rx(void) { UART_RX_DMA_HandleIRQ(MT3620_UNIT_ISU0); }
+void m4dma_irq_b_uart1_rx(void) { UART_RX_DMA_HandleIRQ(MT3620_UNIT_ISU1); }
+void m4dma_irq_b_uart2_rx(void) { UART_RX_DMA_HandleIRQ(MT3620_UNIT_ISU2); }
+void m4dma_irq_b_uart3_rx(void) { UART_RX_DMA_HandleIRQ(MT3620_UNIT_ISU3); }
+void m4dma_irq_b_uart4_rx(void) { UART_RX_DMA_HandleIRQ(MT3620_UNIT_ISU4); }
+void m4dma_irq_b_uart5_rx(void) { UART_RX_DMA_HandleIRQ(MT3620_UNIT_ISU5); }
