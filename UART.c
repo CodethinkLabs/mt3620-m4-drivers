@@ -198,13 +198,6 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
         MT3620_UART_FIELD_WRITE(id, ier, erbfi, true);
     }
 
-    NVIC_EnableIRQ(MT3620_UART_INTERRUPT(id), UART_PRIORITY);
-
-    if (dma) {
-        // Only start RX DMA as TX DMA will be unused until first transmission.
-        MT3620_DMA_FIELD_WRITE(MT3620_UART_DMA_RX(id), start, str, true);
-    }
-
     context[id].id   = id;
     context[id].open = true;
     context[id].dma  = dma;
@@ -218,6 +211,13 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
     context[id].rxWrite  = 0;
 
     context[id].rxCallback = rxCallback;
+
+    NVIC_EnableIRQ(MT3620_UART_INTERRUPT(id), UART_PRIORITY);
+
+    if (dma) {
+        // Only start RX DMA as TX DMA will be unused until first transmission.
+        MT3620_DMA_FIELD_WRITE(MT3620_UART_DMA_RX(id), start, str, true);
+    }
 
     return &context[id];
 }
