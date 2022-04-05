@@ -259,7 +259,9 @@ int32_t UART_Write(UART *handle, const void *data, uintptr_t size)
 
             uintptr_t chunk = (size > TX_BUFFER_SIZE ? TX_BUFFER_SIZE : size);
 
-            memcpy(UART_BuffTX[handle->id], data, chunk);
+            for (uintptr_t i = 0; i < chunk; i++) {
+                UART_BuffTX[handle->id][i] = ((uint8_t *)data)[i];
+            }
             tx_dma->swptr = (chunk == TX_BUFFER_SIZE ? 0x00010000 : chunk);
 
             MT3620_UART_FIELD_WRITE(handle->id, extend_add, tx_dma_hsk_en, false);
