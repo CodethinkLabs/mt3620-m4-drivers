@@ -29,7 +29,6 @@ struct I2S {
 
 static I2S context[MT3620_I2S_COUNT] = {0};
 
-// TODO: Clean this up.
 #define I2S_PRIORITY 2
 
 static inline unsigned I2S_UnitToID(Platform_Unit unit)
@@ -80,7 +79,6 @@ I2S *I2S_Open(Platform_Unit unit, unsigned mclk)
         return NULL;
     }
 
-    // TODO: Check if non-PLL'd 26M is actually core clock.
     mt3620_i2s_clk_sel_e ext_mclk_sel;
     switch (mclk) {
     case        0:
@@ -405,7 +403,7 @@ int32_t I2S_Input(
         ul_control.sr          = sr;
         ul_control.bit_per_s   = (tdm && (channels == 4) ? 1 : 0);
         ul_control.ws_rsync    = true;  // Functional Spec recommends this be on.
-        ul_control.down_rate   = false; // TODO: Figure out when this should be used.
+        ul_control.down_rate   = false;
         ul_control.msb_offset  = 0;
         ul_control.update_word = 8;
         ul_control.ch_per_s    = (tdm && (channels == 4) ? 1 : 0);

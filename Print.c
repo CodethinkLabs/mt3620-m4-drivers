@@ -138,7 +138,7 @@ static inline int32_t UART__PrintFloatFiller(
         sigDigits = PRINT_FLOAT_SIGDIG_DEFAULT;
     }
 
-    /* Get LH and RH side of float */
+    // Get LH and RH side of float
     int32_t leftHand, rightHand;
 
     leftHand  = (int32_t)value;
@@ -151,7 +151,7 @@ static inline int32_t UART__PrintFloatFiller(
         lhWidth = 0;
     }
 
-    /* Print LH.RH */
+    // Print LH.RH
     if ((error = UART__PrintUIntBaseFiller(handle, leftHand,
                                            PRINT_FLOAT_BASE, (unsigned)lhWidth,
                                            false, filler)) != ERROR_NONE) {
@@ -206,7 +206,7 @@ static inline formatSpec parseFormatSpecifier(
     while (!seenType) {
         if ((*current >= '0') && (*current <= '9')) {
             if ((temp == 0) && (*current == '0')) {
-                // filler spec
+                // Filler spec
                 spec.filler = '0';
             }
             else {
@@ -221,7 +221,7 @@ static inline formatSpec parseFormatSpecifier(
         }
         else if ((*current >= 'a') || (*current <= 'z')) {
             if (*current == 'l') {
-                // ignore long types
+                // Ignore long types
                 current++;
                 continue;
             }
@@ -255,7 +255,7 @@ int32_t UART_vPrintf(UART *handle, const char *format, va_list args)
     unsigned tempIndex = 0;
     int32_t  error = ERROR_NONE;
 
-    /* Loop through string and look for format specifier */
+    // Loop through string and look for format specifier
     char       *start = NULL, *end = NULL;
     formatSpec  spec;
     char        c;
@@ -268,7 +268,7 @@ int32_t UART_vPrintf(UART *handle, const char *format, va_list args)
         if (*format == '%') {
             start = (char*)(format + 1);
             if (*start == '%') {
-                // handle %% pseudo-char
+                // Handle %% pseudo-char
                 tempBuffer[tempIndex++] = *format;
                 format += 2;
                 continue;
@@ -281,7 +281,7 @@ int32_t UART_vPrintf(UART *handle, const char *format, va_list args)
             }
             format = end + 1;
             if (tempIndex > 0) {
-                /* Write previously globbed tempBuffer */
+                // Write previously globbed tempBuffer
                 tempBuffer[tempIndex] = '\0';
                 tempIndex             = 0;
                 if ((error = UART_Print(
@@ -289,7 +289,7 @@ int32_t UART_vPrintf(UART *handle, const char *format, va_list args)
                     break;
                 }
             }
-            /* Write formatted arg */
+            // Write formatted arg
             switch (spec.type) {
             case 'd':
             case 'i':
@@ -335,7 +335,7 @@ int32_t UART_vPrintf(UART *handle, const char *format, va_list args)
     }
 
     if (error == ERROR_NONE) {
-        /* Write previously globbed tempBuffer */
+        // Write previously globbed tempBuffer
         tempBuffer[tempIndex] = '\0';
         error = UART_Print(handle, (const char*)tempBuffer);
     }

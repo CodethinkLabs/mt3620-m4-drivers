@@ -62,9 +62,6 @@ typedef union __attribute__((__packed__)) {
 
 typedef mt3620_gpt2_ctrl_t mt3620_gpt4_ctrl_t;
 
-// TODO: should I split these out into one struct per timer?
-//       the interface isn't the same, but I'd be able to make an
-//       indexable list, rather than having loads of switches.
 typedef struct {
     volatile uint32_t       gpt_isr;
     volatile uint32_t       gpt_ier;

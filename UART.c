@@ -31,7 +31,9 @@
 #endif
 
 
-// TODO: Reduce sysram usage by providing a more limited set of buffers?
+// Note that we currently reserve an RX and TX buffer in sysram for each possible
+// ISU interface. For very sysram constrained applications it may make sense to
+// modify this so that you only reserve the buffers that are actually needed.
 static __attribute__((section(".sysram"))) volatile uint8_t UART_BuffRX[MT3620_UART_COUNT][RX_BUFFER_SIZE] = { 0 };
 static __attribute__((section(".sysram"))) volatile uint8_t UART_BuffTX[MT3620_UART_COUNT][TX_BUFFER_SIZE] = { 0 };
 

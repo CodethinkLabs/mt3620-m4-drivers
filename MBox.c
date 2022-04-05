@@ -18,14 +18,13 @@
 struct MBox {
     bool           fifo_open;
     Platform_Unit  unit;
-    void          (*rx_cb)               (void*);
-    void          (*tx_confirmed_cb)     (void*);
-    void          (*fifo_state_change_cb)(void*, MBox_FIFO_State state);
+    void         (*rx_cb               )(void*);
+    void         (*tx_confirmed_cb     )(void*);
+    void         (*fifo_state_change_cb)(void*, MBox_FIFO_State state);
     void          *user_data;
     int8_t         non_full_threshold;
     int8_t         non_empty_threshold;
-
-    void          (*sw_int_cb)           (void*, uint8_t port);
+    void         (*sw_int_cb           )(void*, uint8_t port);
 };
 
 static MBox context[MT3620_UNIT_MBOX_COUNT] = {0};
@@ -108,7 +107,6 @@ MBox* MBox_FIFO_Open(
         return NULL;
     }
 
-    // TODO: determine if MB needs a reset on open
     MBox_FIFO_Reset(handle, true);
 
     handle->fifo_open = true;
@@ -148,7 +146,6 @@ void MBox_FIFO_Close(MBox *handle)
         return;
     }
 
-    // TODO: is this required?
     MBox_FIFO_Reset(handle, false);
 
     handle->fifo_open = false;
@@ -169,6 +166,7 @@ void MBox_FIFO_Reset(MBox *handle, bool both)
     if (!handle) {
         return;
     }
+
     // Note that the MB on the partner core must also be reset
     int32_t index = MBox__Get_Index(handle->unit);
 
@@ -553,7 +551,7 @@ void cm4_mbox_a7n2m4a_ne_int(void)
 
 void cm4_mbox_a7n_fifo_int(void)
 {
-    // TODO: find if is this triggered for all of above & implement
+
 }
 
 void cm4_mbox_a7n2m4a_sw_int(void)
@@ -584,7 +582,7 @@ void cm4_mbox_m4b2m4a_ne_int(void)
 
 void cm4_mbox_m4b_fifo_int(void)
 {
-    // TODO: find if is this triggered for all of above & implement
+
 }
 
 void cm4_mbox_m4b2m4a_sw_int(void)

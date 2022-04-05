@@ -85,9 +85,9 @@ int32_t GPIO_Read(uint32_t pin, bool *state)
 
     uint32_t pinMask = getPinMask(pin, block);
 
-    /* The GPIO register map for ISU is undocumented, but it looks like the DIN
-     * offset is at 0xc, as opposed to 0x4 (for GPIO). Similarly, the I2S GPIO
-     * DIN offset is also different, but at 0x0.*/
+    // The GPIO register map for ISU is undocumented, but it looks like the DIN
+    // offset is at 0xc, as opposed to 0x4 (for GPIO). Similarly, the I2S GPIO
+    // DIN offset is also different, but at 0x0.
 
     if (block < MT3620_GPIO_BLOCK_ISU_0) {
         *state = pinMask & mt3620_gpio[block]->gpio_pwm_grp_din;
@@ -136,9 +136,10 @@ int32_t PWM_ConfigurePin(uint32_t pin, uint32_t clockFrequency, uint32_t onTime,
         return ERROR_PWM_UNSUPPORTED_CLOCK_SEL;
     }
 
-    //Write default values of the registers before starting as recommended in the datasheet
+    // Write default values of the registers before starting as recommended in the datasheet
     mt3620_pwm[pwmBlock]->pwm_glo_ctrl = MT3620_PWM_GLO_CTRL_DEF;
-    //Switch statement starts from 1 since pinMask = pwm pwmBlock + 1
+
+    // Switch statement starts from 1 since pinMask = pwm pwmBlock + 1
     switch(pinMask) {
         case 1:
             mt3620_pwm[pwmBlock]->pwm0_ctrl = MT3620_PWM_CTRL_DEF;

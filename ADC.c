@@ -12,22 +12,22 @@
 #include <stddef.h>
 #include <stdint.h>
 
-//This enables the FIFO clear during initialisation
+// This enables the FIFO clear during initialisation
 #define ADC_FIFO_CLEAR
 
-//ADC interrupt priority
+// ADC interrupt priority
 #define ADC_PRIORITY 2
 
-//ADC frequency
+// ADC frequency
 #define ADC_CLK_FREQUENCY 2000000
 
 struct AdcContext {
-    bool init;
+    bool      init;
     uint32_t *rawData;
     ADC_Data *data;
-    uint16_t fifoSize;
-    uint8_t channelsCount;
-    void (*callback)(int32_t);
+    uint16_t  fifoSize;
+    uint8_t   channelsCount;
+    void    (*callback)(int32_t);
 };
 
 static AdcContext context[MT3620_ADC_COUNT] = {0};
@@ -77,12 +77,12 @@ AdcContext *ADC_Open(Platform_Unit unit)
     context[id].fifoSize = 0;
     context[id].channelsCount = 0;
 
-    //Manually reset DMA and ADC
+    // Manually reset DMA and ADC
     mt3620_adc->adc_global_ctrl = 0;
     mt3620_adc->adc_global_ctrl = 1;
     mt3620_dma_global->ch_en_clr = (1U << MT3620_ADC_DMA_CHANNEL);
 
-    /* Set NVIC priority and enable the interrupt for ADC and DMA*/
+    // Set NVIC priority and enable the interrupt for ADC and DMA
     NVIC_EnableIRQ(MT3620_ADC_INTERRUPT, ADC_PRIORITY);
 
     return &context[id];
@@ -94,7 +94,7 @@ void ADC_Close(AdcContext *handle)
         return;
     }
 
-    /* Turn off interrupt and reset trigger level to default */
+    // Turn off interrupt and reset trigger level to default
     MT3620_ADC_FIELD_WRITE(adc_fifo_ier, rxfen, 0);
     mt3620_adc->adc_fifo_tri_lvl = ADC_FIFO_TRI_LVL_DEF;
 
@@ -104,7 +104,7 @@ void ADC_Close(AdcContext *handle)
     ctl0.pmode_en = 0;
     mt3620_adc->adc_ctl0 = ctl0.mask;
 
-    /* Disable the interrupt for ADC and DMA*/
+    // Disable the interrupt for ADC and DMA
     NVIC_DisableIRQ(MT3620_ADC_INTERRUPT);
 
     handle->init = false;
@@ -170,22 +170,22 @@ static int32_t ADC_Read(
     }
 #endif
 
-    /* Wait for time specified in datasheet */
+    // Wait for time specified in datasheet
     GPT *timer = GPT_Open(MT3620_UNIT_GPT3, MT3620_GPT_3_LOW_SPEED, GPT_MODE_NONE);
     GPT_WaitTimer_Blocking(timer, 50, GPT_UNITS_MICROSEC);
     GPT_Close(timer);
 
-    /* Set trigger level based on number of channels selected */
+    // Set trigger level based on number of channels selected
     uint8_t numChannels = ADC_CountChannels(channel);
 
     handle->channelsCount = numChannels;
 
-    //Check fifo size is at least as great as the number of channels
+    // Check fifo size is at least as great as the number of channels
     if (handle->fifoSize < numChannels) {
         return ERROR_ADC_FIFO_INVALID;
     }
 
-    //Set DMA registers
+    // Set DMA registers
     mt3620_dma_global->ch_en_set = (1 << MT3620_ADC_DMA_CHANNEL);
 
     MT3620_DMA_FIELD_WRITE(MT3620_ADC_DMA_CHANNEL, start, str, false);
@@ -213,7 +213,7 @@ static int32_t ADC_Read(
 
     MT3620_DMA_FIELD_WRITE(MT3620_ADC_DMA_CHANNEL, start, str, true);
 
-    /* Select ADC channel and enable ADC finite state machine */
+    // Select ADC channel and enable ADC finite state machine
     ctl0.mask = mt3620_adc->adc_ctl0;
     if (periodic) {
         if (frequency > ADC_CLK_FREQUENCY) {

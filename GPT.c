@@ -532,7 +532,7 @@ GPT* GPT_Open(int32_t id, float speedHz, GPT_Mode mode)
     }
 
     if (context[index].open) {
-        // user already has this handle
+        // User already has this handle
         return NULL;
     }
 
@@ -693,15 +693,21 @@ int32_t GPT_Resume(GPT *handle)
     return ERROR_NONE;
 }
 
+// Calculate nCount required for timeout [units]
 static inline uint32_t calculateNumCounts(
     uint32_t  timeout,
     float     speed,
     GPT_Units units)
 {
-    // Calculate nCount required for timeout [units]
-    // TODO: add overflow detection here?
-    return units > speed ? ((float)timeout * speed) / units : (speed / (float)units) * timeout;
+    float uspeed = (speed / (float)units);
 
+    // Detect overflow and return 0 to represent error.
+    float fcounts = uspeed * (float)timeout;
+    if (fcounts > (float)0xFFFFFFFF) {
+        return 0;
+    }
+
+    return (uspeed * timeout);
 }
 
 int32_t GPT_StartTimeout(
@@ -729,7 +735,7 @@ int32_t GPT_StartTimeout(
 
     uint32_t nCount = calculateNumCounts(timeout, actualSpeed, units);
     if (nCount == 0) {
-        // the timeout is smaller than the resolution of the timer
+        // The timeout is invalid.
         return ERROR_GPT_TIMEOUT_INVALID;
     }
 
@@ -851,9 +857,8 @@ int32_t GPT_WaitTimer_Blocking(
     }
 
     uint32_t nCount = calculateNumCounts(timeout, actualSpeed, units);
-
     if (nCount == 0) {
-        // The timeout is smaller than the resolution of the timer.
+        // The timeout is invalid.
         return ERROR_GPT_TIMEOUT_INVALID;
     }
 

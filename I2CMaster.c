@@ -42,7 +42,6 @@ struct I2CMaster {
 
 static I2CMaster context[MT3620_I2C_COUNT] = {0};
 
-// TODO: Clean this up.
 #define I2C_PRIORITY 2
 
 static inline unsigned I2CMaster_UnitToID(Platform_Unit unit)
@@ -69,7 +68,9 @@ I2CMaster *I2CMaster_Open(Platform_Unit unit)
         return NULL;
     }
 
-    // TODO: Find more atomic way of separating master and subordinate device drivers.
+    // Note that when I2C subordinate mode is implemented there'll need to be a
+    // thread-safe method for separating the drivers.
+
     // Enable master mode immediately to reduce risk of collision with subordinate device.
     MT3620_I2C_FIELD_WRITE(id, mm_con0, master_en, true);
 
@@ -171,8 +172,6 @@ int32_t I2CMaster_SetBusSpeed(I2CMaster *handle, I2C_BusSpeed speed)
         return ERROR_UNSUPPORTED;
     }
 
-    // TODO: Update this to use additional logic from Linux driver.
-
     uint32_t period = MT3620_I2C_CLOCK / speed;
 
     if (period >= (255 * 4)) {
@@ -217,8 +216,10 @@ int32_t I2CMaster_GetBusSpeed(const I2CMaster *handle, I2C_BusSpeed *speed)
 }
 
 
-// TODO: Move this to a dedicated/common memory/sram header.
-// TODO: Reference datasheet for address ranges.
+// Note that in the future this function may be moved into a common header as it
+// will have relevance wherever DMA bus access needs checking.
+
+// See Section 3.2, Table 8. IO CM4 Region Memory Mapping
 static bool addrOnBus(const void* ptr)
 {
     uintptr_t addr = (uintptr_t)ptr;

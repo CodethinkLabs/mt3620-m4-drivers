@@ -42,7 +42,9 @@ struct SPIMaster {
 
 static SPIMaster spiContext[MT3620_SPI_COUNT] = { 0 };
 
-// TODO: Reduce sysram usage by providing a more limited set of buffers?
+// Note that we currently reserve a buffer in sysram for each possible ISU interface
+// for very sysram constrained applications it may make sense to modify this so that
+// you only reserve the buffers that are actually needed.
 static __attribute__((section(".sysram"))) mt3620_spi_dma_cfg_t SPIMaster_DmaConfig[MT3620_SPI_COUNT] = { 0 };
 
 #define SPI_PRIORITY 2
@@ -208,7 +210,8 @@ int32_t SPIMaster_ConfigureDriveStrength(SPIMaster *handle, unsigned drive)
         drive = 3;
     }
 
-    // TODO: Put this register mt3620/spi.h when documentation of block is available.
+    // Note that at the time of writing this register address is not documented
+    // in the functional spec.
     volatile uint32_t *paddrv = (uint32_t *)((0x38070000 + (0x00010000 * handle->id)) | 0x0070);
 
     uint32_t mask = *paddrv;
@@ -679,7 +682,7 @@ int32_t SPIMaster_TransferCancel(SPIMaster *handle)
         return ERROR_PARAMETER;
     }
 
-    // stop DMA, reset spi_master_start and read spi_scrc (to clear it)
+    // Stop DMA, reset spi_master_start and read spi_scrc (to clear it)
     mt3620_spi_dma_cfg_t *cfg = &SPIMaster_DmaConfig[handle->id];
     MT3620_DMA_FIELD_WRITE(MT3620_SPI_DMA_TX(handle->id), start, str, false);
     cfg->stcsr.spi_master_start = false;

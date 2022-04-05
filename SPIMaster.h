@@ -49,7 +49,7 @@ typedef enum {
     /// <summary>The MOSI line will idle low</summary>
     SPI_IDLE_LEVEL_LOW = 0,
     /// <summary>The MOSI line will idle high</summary>
-	SPI_IDLE_LEVEL_HIGH = 1,
+    SPI_IDLE_LEVEL_HIGH = 1,
     /// <summary>The MOSI line will idle at any level, may be faster on some hardware.</summary>
     SPI_IDLE_LEVEL_DONT_CARE,
 } SPI_IdleLevel;

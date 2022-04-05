@@ -146,7 +146,7 @@ typedef mt3620_gpio_pwm_reg_t mt3620_gpio_pwm_grp_rsel_t;
 typedef mt3620_gpio_pwm_reg_set_t mt3620_gpio_pwm_grp_rsel_set_t;
 typedef mt3620_gpio_pwm_reg_reset_t mt3620_gpio_pwm_grp_rsel_reset_t;
 
-//NB: There are three of these registers 4 bytes apart
+// NB: There are three of these registers 4 bytes apart
 typedef union __attribute__((__packed__)) {
     struct __attribute__((__packed__)) {
         unsigned       gpio_dglt_min_pulse_wid : 14;
@@ -199,7 +199,6 @@ typedef union __attribute__((__packed__)) {
     uint32_t mask;
 } mt3620_gpio_cnt_dynamic_ctrl0_t;
 
-//TODO: Ask MediaTek for better documentation of these registers
 typedef union __attribute__((__packed__)) {
     struct __attribute__((__packed__)) {
         bool           gpio_event_cnt_low_lim   : 1;
@@ -209,17 +208,15 @@ typedef union __attribute__((__packed__)) {
         bool           gpio_event_cnt_overflow  : 1;
         bool           gpio_event_cnt_underflow : 1;
         const unsigned res_11_10                : 2;
-        //The next 4 bits are unknown due to the datasheet being unclear
-        bool           unknown_12               : 1;
-        bool           unknown_13               : 1;
-        bool           unknown_14               : 1;
-        bool           unknown_15               : 1;
+        bool           wr_cv_to_fifo0_when_full : 1;
+        bool           wr_cv_to_fifo1_when_full : 1;
+        bool           wr_gpio2_reset_notify_to_fifo0_when_full : 1;
+        bool           wr_gpio2_reset_notify_to_fifo1_when_full : 1;
         bool           capture_fifo0_not_empty  : 1;
         bool           capture_fifo1_not_empty  : 1;
         const unsigned res_23_18                : 6;
-        //The next 2 bits are unknown due to the datasheet being unclear
-        bool           unknown_24               : 1;
-        bool           unknown_25               : 1;
+        bool           rd_cap_fifo0_when_empty  : 1;
+        bool           rd_cap_fifo1_when_empty  : 1;
         const unsigned res_31_26                : 6;
     };
 
