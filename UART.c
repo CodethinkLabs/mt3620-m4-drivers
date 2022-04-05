@@ -9,9 +9,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-// Disable DMA as it doesn't currently work
-#undef UART_ALLOW_DMA
-
 
 // Configure these variables as needed.
 #define TX_BUFFER_SIZE 256
@@ -137,12 +134,10 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
     mt3620_uart[id]->fcr = fcr.mask;
 
     bool dma = false;
-#ifdef UART_ALLOW_DMA
     // Debug UART doesn't seem to have DMA support.
     if (unit != MT3620_UNIT_UART_DEBUG) {
         dma = true;
     }
-#endif
 
     MT3620_UART_FIELD_WRITE(id, vfifo_en, vfifo_en, dma);
 
