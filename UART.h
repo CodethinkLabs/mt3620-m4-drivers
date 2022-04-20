@@ -41,6 +41,7 @@ static const uint32_t UART_PRIORITY = 2;
 /// <param name="baud">Target baud rate.</param>
 /// <param name="parity">Parity mode: <see cref="UART_Parity" />.</param>
 /// <param name="stopBits">Number of stop bits, only 1 or 2 are valid.</param>
+/// <param name="enableFlowControl">Set to true to enable hardware flow control.</param>
 /// <param name="rxCallback">An optional callback to invoke when the UART receives data.
 /// This can be NULL if the application does not want to read any data from the UART. The
 /// application should call <see cref="UART_DequeueData" /> to retrieve the data.</param>
@@ -49,6 +50,7 @@ UART *UART_Open(
     unsigned      baud,
     UART_Parity   parity,
     unsigned      stopBits,
+    bool          enableFlowControl,
     void         (*rxCallback)(void));
 
 /// <summary>
@@ -94,6 +96,8 @@ int32_t UART_Read(UART *handle, void *data, uintptr_t size);
 /// <param name="handle">Which UART to read the read buffer size of.</param>
 /// <returns>Number of bytes available to be read.</returns>
 uintptr_t UART_ReadAvailable(UART *handle);
+
+int UART_hw_fc(UART *handle, bool enable);
 
 
 #ifdef __cplusplus

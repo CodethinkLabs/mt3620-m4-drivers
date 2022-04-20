@@ -30,7 +30,7 @@
 #error "RX buffer size must be a power of two"
 #endif
 
-
+#include "../dmesg.h"
 // Note that we currently reserve an RX and TX buffer in sysram for each possible
 // ISU interface. For very sysram constrained applications it may make sense to
 // modify this so that you only reserve the buffers that are actually needed.
@@ -58,8 +58,27 @@ static inline unsigned UART_UnitToID(Platform_Unit unit)
     return (unit - MT3620_UNIT_UART_DEBUG);
 }
 
-UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned stopBits, void (*rxCallback)(void))
+
+#include "Print.h"
+extern UART *debug;
+
+int UART_hw_fc(UART *handle, bool enableFlowControl) {
+    mt3620_uart_lcr_t lcr = { .mask = mt3620_uart[handle->id]->lcr };
+    mt3620_uart[handle->id]->lcr = 0xBF;
+    mt3620_uart_efr_t efr = { .mask = mt3620_uart[handle->id]->efr };
+    efr.sw_flow_cont = false;//enableFlowControl ? 0b1010 : 0;
+    efr.enable_e     = true;
+    efr.auto_rts     = enableFlowControl;
+    efr.auto_cts     = enableFlowControl;
+    mt3620_uart[handle->id]->efr = efr.mask;
+
+    mt3620_uart[handle->id]->lcr = lcr.mask;
+}
+
+UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned stopBits, bool enableFlowControl, void (*rxCallback)(void))
 {
+    bool is_debug_uart = unit == MT3620_UNIT_UART_DEBUG;
+
     unsigned id = UART_UnitToID(unit);
     if (id >= MT3620_UART_COUNT) {
         return NULL;
@@ -100,14 +119,49 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
     lcr.dlab = true;
     mt3620_uart[id]->lcr = lcr.mask;
 
+    // do not enable flow control on debug uart
+    enableFlowControl = !is_debug_uart && enableFlowControl;
+
+    if (!is_debug_uart) {
+        DMESG("UART fc %d \r\n", enableFlowControl);
+    }
+
+    mt3620_uart[id]->lcr = 0xBF;
+
+    // EFR (enable enhancement features)
+    // mt3620_uart_efr_t efr = { .mask = mt3620_uart[id]->efr };
+    // efr.sw_flow_cont = false;//enableFlowControl ? 0b1010 : 0;
+    // efr.enable_e     = true;
+    // efr.auto_rts     = enableFlowControl;
+    // efr.auto_cts     = enableFlowControl;
+    mt3620_uart[id]->efr = 0xd0;
+
+
+    mt3620_uart[id]->escape_en = 0;
+
+    mt3620_uart[id]->lcr = 0;
+
+    mt3620_uart[id]->mcr = 0x2;
+
+    mt3620_uart[id]->lcr = lcr.mask;
+#if 0
+    mt3620_uart[id]->lcr = 0xBF;
+
     // EFR (enable enhancement features)
     mt3620_uart_efr_t efr = { .mask = mt3620_uart[id]->efr };
-    efr.sw_flow_cont = 0;
+    efr.sw_flow_cont = false;//enableFlowControl ? 0b1010 : 0;
     efr.enable_e     = true;
-    efr.auto_rts     = 0;
-    efr.auto_cts     = 0;
+    efr.auto_rts     = enableFlowControl;
+    efr.auto_cts     = enableFlowControl;
     mt3620_uart[id]->efr = efr.mask;
 
+    if (enableFlowControl) {
+        // mcr requires lcr to be set to 0xBF
+        mt3620_uart_mcr_t mcr = { .mask = mt3620_uart[id]->mcr };
+        mcr.rts = true;
+        mt3620_uart[id]->mcr = mcr.mask;
+    }
+#endif
     MT3620_UART_FIELD_WRITE(id, highspeed, speed, 3);
     MT3620_UART_FIELD_WRITE(id, dlm, dlm, (dl >> 8)); // Divisor Latch (MS)
     MT3620_UART_FIELD_WRITE(id, dll, dll, (dl & 0xFF)); // Divisor Latch (LS)
@@ -135,15 +189,12 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
     fcr.fifoe = true; // FIFO Enable
     mt3620_uart[id]->fcr = fcr.mask;
 
-    bool dma = false;
-    // Debug UART doesn't seem to have DMA support.
-    if (unit != MT3620_UNIT_UART_DEBUG) {
-        dma = true;
-    }
+    bool dma = !is_debug_uart;
 
     MT3620_UART_FIELD_WRITE(id, vfifo_en, vfifo_en, dma);
 
     if (dma) {
+
         mt3620_dma_global->ch_en_set = (1U << MT3620_UART_DMA_TX(id));
         MT3620_DMA_FIELD_WRITE(MT3620_UART_DMA_TX(id), start, str, false);
 
@@ -402,8 +453,10 @@ uintptr_t UART_ReadAvailable(UART *handle)
     }
 }
 
+#include "../dmesg.h"
 static void UART_HandleIRQ(Platform_Unit unit)
 {
+    DMESG("DIRQ!");
     unsigned id = UART_UnitToID(unit);
     if (id >= MT3620_UART_COUNT) {
         return;
@@ -414,10 +467,20 @@ static void UART_HandleIRQ(Platform_Unit unit)
         return;
     }
 
+    DMESG("id %d open? %d", id, handle->open);
+    int count = 0;
+
     mt3620_uart_iir_id_e iirId;
     do {
+        
         // Interrupt Identification Register
         iirId = MT3620_UART_FIELD_READ(handle->id, iir, iir_id);
+        if (count <3) {
+            DMESG("IIRD %d", iirId);
+            if (iirId == 0xc0)
+            count++;
+        }
+        
         switch (iirId) {
         case MT3620_UART_IIR_ID_NO_INTERRUPT_PENDING:
             // The TX FIFO can accept more data.
@@ -454,8 +517,7 @@ static void UART_HandleIRQ(Platform_Unit unit)
             if (handle->rxCallback && UART_ReadAvailable(handle) > 0) {
                 handle->rxCallback();
             }
-
-            mt3620_uart[handle->id]->vfifo_en; // reading this acknowledges timeout interrupt
+            volatile int c = mt3620_uart[handle->id]->vfifo_en; // reading this acknowledges timeout interrupt
             break;
 
         default:
