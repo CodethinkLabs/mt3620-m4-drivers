@@ -30,7 +30,6 @@
 #error "RX buffer size must be a power of two"
 #endif
 
-#include "../dmesg.h"
 // Note that we currently reserve an RX and TX buffer in sysram for each possible
 // ISU interface. For very sysram constrained applications it may make sense to
 // modify this so that you only reserve the buffers that are actually needed.
@@ -97,8 +96,6 @@ int UART_HW_FlowControl_Enable(UART *handle, bool enableFlowControl)
 
 UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned stopBits, void (*rxCallback)(void))
 {
-    bool is_debug_uart = unit == MT3620_UNIT_UART_DEBUG;
-
     unsigned id = UART_UnitToID(unit);
     if (id >= MT3620_UART_COUNT) {
         return NULL;
@@ -174,12 +171,12 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
     fcr.fifoe = true; // FIFO Enable
     mt3620_uart[id]->fcr = fcr.mask;
 
-    bool dma = !is_debug_uart;
+    // no dma on debug uart
+    bool dma = !(unit == MT3620_UNIT_UART_DEBUG);
 
     MT3620_UART_FIELD_WRITE(id, vfifo_en, vfifo_en, dma);
 
     if (dma) {
-
         mt3620_dma_global->ch_en_set = (1U << MT3620_UART_DMA_TX(id));
         MT3620_DMA_FIELD_WRITE(MT3620_UART_DMA_TX(id), start, str, false);
 
@@ -438,10 +435,8 @@ uintptr_t UART_ReadAvailable(UART *handle)
     }
 }
 
-#include "../dmesg.h"
 static void UART_HandleIRQ(Platform_Unit unit)
 {
-    DMESG("DIRQ!");
     unsigned id = UART_UnitToID(unit);
     if (id >= MT3620_UART_COUNT) {
         return;
@@ -452,20 +447,13 @@ static void UART_HandleIRQ(Platform_Unit unit)
         return;
     }
 
-    DMESG("id %d open? %d", id, handle->open);
-    int count = 0;
 
     mt3620_uart_iir_id_e iirId;
     do {
         
         // Interrupt Identification Register
         iirId = MT3620_UART_FIELD_READ(handle->id, iir, iir_id);
-        if (count <3) {
-            DMESG("IIRD %d", iirId);
-            if (iirId == 0xc0)
-            count++;
-        }
-        
+
         switch (iirId) {
         case MT3620_UART_IIR_ID_NO_INTERRUPT_PENDING:
             // The TX FIFO can accept more data.
