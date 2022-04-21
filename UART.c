@@ -30,6 +30,7 @@
 #error "RX buffer size must be a power of two"
 #endif
 
+
 // Note that we currently reserve an RX and TX buffer in sysram for each possible
 // ISU interface. For very sysram constrained applications it may make sense to
 // modify this so that you only reserve the buffers that are actually needed.
@@ -69,7 +70,7 @@ int UART_HW_FlowControl_Enable(UART *handle, bool enableFlowControl)
     mt3620_uart_lcr_t lcr = { .mask = mt3620_uart[handle->id]->lcr };
     mt3620_uart[handle->id]->lcr = 0xBF;
 
-     // EFR (enable enhancement features)
+    // EFR (enable enhancement features)
     mt3620_uart_efr_t efr = { .mask = mt3620_uart[id]->efr };
     efr.sw_flow_cont = false;
     efr.enable_e     = true;
@@ -447,13 +448,10 @@ static void UART_HandleIRQ(Platform_Unit unit)
         return;
     }
 
-
     mt3620_uart_iir_id_e iirId;
-    do {
-        
+    do {        
         // Interrupt Identification Register
         iirId = MT3620_UART_FIELD_READ(handle->id, iir, iir_id);
-
         switch (iirId) {
         case MT3620_UART_IIR_ID_NO_INTERRUPT_PENDING:
             // The TX FIFO can accept more data.
