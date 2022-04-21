@@ -143,45 +143,7 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
         // restore previous lcr (0xBF)
         mt3620_uart[id]->lcr = lcr.mask;
     }
-     
-#if 0
-    mt3620_uart[id]->lcr = 0xBF;
 
-    // EFR (enable enhancement features)
-    // mt3620_uart_efr_t efr = { .mask = mt3620_uart[id]->efr };
-    // efr.sw_flow_cont = false;//enableFlowControl ? 0b1010 : 0;
-    // efr.enable_e     = true;
-    // efr.auto_rts     = enableFlowControl;
-    // efr.auto_cts     = enableFlowControl;
-    mt3620_uart[id]->efr = 0xd0;
-
-
-    mt3620_uart[id]->escape_en = 0;
-
-    mt3620_uart[id]->lcr = 0;
-
-    mt3620_uart[id]->mcr = 0x2;
-
-    mt3620_uart[id]->lcr = lcr.mask;
-#endif
-#if 0
-    mt3620_uart[id]->lcr = 0xBF;
-
-    // EFR (enable enhancement features)
-    mt3620_uart_efr_t efr = { .mask = mt3620_uart[id]->efr };
-    efr.sw_flow_cont = false;//enableFlowControl ? 0b1010 : 0;
-    efr.enable_e     = true;
-    efr.auto_rts     = enableFlowControl;
-    efr.auto_cts     = enableFlowControl;
-    mt3620_uart[id]->efr = efr.mask;
-
-    if (enableFlowControl) {
-        // mcr requires lcr to be set to 0xBF
-        mt3620_uart_mcr_t mcr = { .mask = mt3620_uart[id]->mcr };
-        mcr.rts = true;
-        mt3620_uart[id]->mcr = mcr.mask;
-    }
-#endif
     MT3620_UART_FIELD_WRITE(id, highspeed, speed, 3);
     MT3620_UART_FIELD_WRITE(id, dlm, dlm, (dl >> 8)); // Divisor Latch (MS)
     MT3620_UART_FIELD_WRITE(id, dll, dll, (dl & 0xFF)); // Divisor Latch (LS)
