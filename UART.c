@@ -137,7 +137,7 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
     lcr.dlab = true;
     mt3620_uart[id]->lcr = lcr.mask;
 
-     // EFR (enable enhancement features)
+    // EFR (enable enhancement features)
     mt3620_uart_efr_t efr = { .mask = mt3620_uart[id]->efr };
     efr.sw_flow_cont = false;
     efr.enable_e     = true;
@@ -449,7 +449,7 @@ static void UART_HandleIRQ(Platform_Unit unit)
     }
 
     mt3620_uart_iir_id_e iirId;
-    do {        
+    do {
         // Interrupt Identification Register
         iirId = MT3620_UART_FIELD_READ(handle->id, iir, iir_id);
         switch (iirId) {
@@ -488,6 +488,7 @@ static void UART_HandleIRQ(Platform_Unit unit)
             if (handle->rxCallback && UART_ReadAvailable(handle) > 0) {
                 handle->rxCallback();
             }
+
             mt3620_uart[handle->id]->vfifo_en; // reading this acknowledges timeout interrupt
             break;
 
