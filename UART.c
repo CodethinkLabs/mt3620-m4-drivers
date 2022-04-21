@@ -122,10 +122,29 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
     // do not enable flow control on debug uart
     enableFlowControl = !is_debug_uart && enableFlowControl;
 
-    if (!is_debug_uart) {
-        DMESG("UART fc %d \r\n", enableFlowControl);
-    }
+     // EFR (enable enhancement features)
+    mt3620_uart_efr_t efr = { .mask = mt3620_uart[id]->efr };
+    efr.sw_flow_cont = false;
+    efr.enable_e     = true;
+    efr.auto_rts     = enableFlowControl;
+    efr.auto_cts     = enableFlowControl;
+    mt3620_uart[id]->efr = efr.mask;
 
+    mt3620_uart[id]->escape_en = 0;
+
+    if (enableFlowControl) {
+        // to set mcr, lcr needs to be set to 0
+        mt3620_uart[id]->lcr = 0;
+        
+        mt3620_uart_mcr_t mcr = { .mask = mt3620_uart[id]->mcr };
+        mcr.rts = true;
+        mt3620_uart[id]->mcr = mcr.mask;
+
+        // restore previous lcr (0xBF)
+        mt3620_uart[id]->lcr = lcr.mask;
+    }
+     
+#if 0
     mt3620_uart[id]->lcr = 0xBF;
 
     // EFR (enable enhancement features)
@@ -144,6 +163,7 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
     mt3620_uart[id]->mcr = 0x2;
 
     mt3620_uart[id]->lcr = lcr.mask;
+#endif
 #if 0
     mt3620_uart[id]->lcr = 0xBF;
 
