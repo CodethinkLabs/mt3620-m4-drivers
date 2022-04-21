@@ -58,24 +58,44 @@ static inline unsigned UART_UnitToID(Platform_Unit unit)
     return (unit - MT3620_UNIT_UART_DEBUG);
 }
 
+int UART_HW_FlowControl_Enable(UART *handle, bool enableFlowControl) 
+{
+    // never enable flow control for debug interface.
+    if (handle == NULL || handle->id == MT3620_UNIT_UART_DEBUG)
+        return ERROR_PARAMETER;
 
-#include "Print.h"
-extern UART *debug;
+    unsigned id = handle->id;
 
-int UART_hw_fc(UART *handle, bool enableFlowControl) {
+    // save current lcr
     mt3620_uart_lcr_t lcr = { .mask = mt3620_uart[handle->id]->lcr };
     mt3620_uart[handle->id]->lcr = 0xBF;
-    mt3620_uart_efr_t efr = { .mask = mt3620_uart[handle->id]->efr };
-    efr.sw_flow_cont = false;//enableFlowControl ? 0b1010 : 0;
+
+     // EFR (enable enhancement features)
+    mt3620_uart_efr_t efr = { .mask = mt3620_uart[id]->efr };
+    efr.sw_flow_cont = false;
     efr.enable_e     = true;
     efr.auto_rts     = enableFlowControl;
     efr.auto_cts     = enableFlowControl;
-    mt3620_uart[handle->id]->efr = efr.mask;
+    mt3620_uart[id]->efr = efr.mask;
 
-    mt3620_uart[handle->id]->lcr = lcr.mask;
+    if (enableFlowControl) {
+        mt3620_uart[id]->escape_en = 0;
+    }
+
+    // to set mcr, lcr needs to be set to 0
+    mt3620_uart[id]->lcr = 0;
+    
+    mt3620_uart_mcr_t mcr = { .mask = mt3620_uart[id]->mcr };
+    mcr.rts = enableFlowControl;
+    mt3620_uart[id]->mcr = mcr.mask;
+
+    // restore previous lcr 
+    mt3620_uart[id]->lcr = lcr.mask;
+
+    return ERROR_NONE;
 }
 
-UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned stopBits, bool enableFlowControl, void (*rxCallback)(void))
+UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned stopBits, void (*rxCallback)(void))
 {
     bool is_debug_uart = unit == MT3620_UNIT_UART_DEBUG;
 
@@ -119,30 +139,13 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
     lcr.dlab = true;
     mt3620_uart[id]->lcr = lcr.mask;
 
-    // do not enable flow control on debug uart
-    enableFlowControl = !is_debug_uart && enableFlowControl;
-
      // EFR (enable enhancement features)
     mt3620_uart_efr_t efr = { .mask = mt3620_uart[id]->efr };
     efr.sw_flow_cont = false;
     efr.enable_e     = true;
-    efr.auto_rts     = enableFlowControl;
-    efr.auto_cts     = enableFlowControl;
+    efr.auto_rts     = false;
+    efr.auto_cts     = false;
     mt3620_uart[id]->efr = efr.mask;
-
-    mt3620_uart[id]->escape_en = 0;
-
-    if (enableFlowControl) {
-        // to set mcr, lcr needs to be set to 0
-        mt3620_uart[id]->lcr = 0;
-        
-        mt3620_uart_mcr_t mcr = { .mask = mt3620_uart[id]->mcr };
-        mcr.rts = true;
-        mt3620_uart[id]->mcr = mcr.mask;
-
-        // restore previous lcr (0xBF)
-        mt3620_uart[id]->lcr = lcr.mask;
-    }
 
     MT3620_UART_FIELD_WRITE(id, highspeed, speed, 3);
     MT3620_UART_FIELD_WRITE(id, dlm, dlm, (dl >> 8)); // Divisor Latch (MS)
@@ -499,7 +502,7 @@ static void UART_HandleIRQ(Platform_Unit unit)
             if (handle->rxCallback && UART_ReadAvailable(handle) > 0) {
                 handle->rxCallback();
             }
-            volatile int c = mt3620_uart[handle->id]->vfifo_en; // reading this acknowledges timeout interrupt
+            mt3620_uart[handle->id]->vfifo_en; // reading this acknowledges timeout interrupt
             break;
 
         default:
