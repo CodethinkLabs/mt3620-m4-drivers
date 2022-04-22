@@ -99,7 +99,7 @@ uintptr_t UART_ReadAvailable(UART *handle);
 /// This function enables/disables hardware flow control.
 /// </summary>
 /// <param name="handle">Which UART to enable flow control.</param>
-/// <returns>ERROR_NONE on success, or ERROR_PARAMETER is debug UART is given.</returns>
+/// <returns>ERROR_NONE on success, or ERROR_PARAMETER if debug UART is given.</returns>
 int UART_HW_FlowControl_Enable(UART *handle, bool enableFlowControl);
 
 #ifdef __cplusplus
