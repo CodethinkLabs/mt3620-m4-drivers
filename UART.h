@@ -95,6 +95,12 @@ int32_t UART_Read(UART *handle, void *data, uintptr_t size);
 /// <returns>Number of bytes available to be read.</returns>
 uintptr_t UART_ReadAvailable(UART *handle);
 
+/// <summary>
+/// This function enables/disables hardware flow control.
+/// </summary>
+/// <param name="handle">Which UART to enable flow control.</param>
+/// <returns>ERROR_NONE on success, or ERROR_PARAMETER if debug UART is given.</returns>
+int UART_HW_FlowControl_Enable(UART *handle, bool enableFlowControl);
 
 #ifdef __cplusplus
  }

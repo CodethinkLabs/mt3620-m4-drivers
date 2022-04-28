@@ -58,6 +58,43 @@ static inline unsigned UART_UnitToID(Platform_Unit unit)
     return (unit - MT3620_UNIT_UART_DEBUG);
 }
 
+int UART_HW_FlowControl_Enable(UART *handle, bool enableFlowControl) 
+{
+    // never enable flow control for debug interface.
+    if (handle == NULL || handle->id == MT3620_UNIT_UART_DEBUG)
+        return ERROR_PARAMETER;
+
+    unsigned id = handle->id;
+
+    // save current lcr
+    mt3620_uart_lcr_t lcr = { .mask = mt3620_uart[handle->id]->lcr };
+    mt3620_uart[handle->id]->lcr = 0xBF;
+
+    // EFR (enable enhancement features)
+    mt3620_uart_efr_t efr = { .mask = mt3620_uart[id]->efr };
+    efr.sw_flow_cont = false;
+    efr.enable_e     = true;
+    efr.auto_rts     = enableFlowControl;
+    efr.auto_cts     = enableFlowControl;
+    mt3620_uart[id]->efr = efr.mask;
+
+    if (enableFlowControl) {
+        mt3620_uart[id]->escape_en = 0;
+    }
+
+    // to set mcr, lcr needs to be set to 0
+    mt3620_uart[id]->lcr = 0;
+    
+    mt3620_uart_mcr_t mcr = { .mask = mt3620_uart[id]->mcr };
+    mcr.rts = enableFlowControl;
+    mt3620_uart[id]->mcr = mcr.mask;
+
+    // restore previous lcr 
+    mt3620_uart[id]->lcr = lcr.mask;
+
+    return ERROR_NONE;
+}
+
 UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned stopBits, void (*rxCallback)(void))
 {
     unsigned id = UART_UnitToID(unit);
@@ -102,10 +139,10 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
 
     // EFR (enable enhancement features)
     mt3620_uart_efr_t efr = { .mask = mt3620_uart[id]->efr };
-    efr.sw_flow_cont = 0;
+    efr.sw_flow_cont = false;
     efr.enable_e     = true;
-    efr.auto_rts     = 0;
-    efr.auto_cts     = 0;
+    efr.auto_rts     = false;
+    efr.auto_cts     = false;
     mt3620_uart[id]->efr = efr.mask;
 
     MT3620_UART_FIELD_WRITE(id, highspeed, speed, 3);
@@ -135,11 +172,8 @@ UART *UART_Open(Platform_Unit unit, unsigned baud, UART_Parity parity, unsigned 
     fcr.fifoe = true; // FIFO Enable
     mt3620_uart[id]->fcr = fcr.mask;
 
-    bool dma = false;
-    // Debug UART doesn't seem to have DMA support.
-    if (unit != MT3620_UNIT_UART_DEBUG) {
-        dma = true;
-    }
+    // no dma on debug uart
+    bool dma = !(unit == MT3620_UNIT_UART_DEBUG);
 
     MT3620_UART_FIELD_WRITE(id, vfifo_en, vfifo_en, dma);
 
